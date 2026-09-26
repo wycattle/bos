@@ -19,13 +19,15 @@ class IpivPivotTable:
     def load(self):
          
         self.IUD = get_dependency('insem_ultra_data')
+        self.IPIVD = get_dependency('ipiv_data')
         self.process()
         
     def process(self):
         
-        engine = get_engine()
-        with engine.connect() as conn:
-            self.ipiv_data = read_sql_table_traced('ipiv_data_formatted', conn)        
+        self.ipiv_data = self.IPIVD.ipiv_data
+        # engine = get_engine()
+        # with engine.connect() as conn:
+        #     self.ipiv_data = read_sql_table_traced('ipiv_data_formatted', conn)        
         
         #methods
         self.ipiv_pivot_table = self.create_ipiv_pivot_table()
@@ -35,22 +37,26 @@ class IpivPivotTable:
     
     def create_ipiv_pivot_table(self):
         df_1 = self.ipiv_data
-        df_2 = df_1.drop(columns=['try_num']) 
-        self.pt = pd.pivot_table(df_2,
-                            index= 'wy_id',
-                            columns= 'lact_num',
+        self.pt = pd.pivot_table(df_1,
+                            index= ['wy_id', 'lact_num'],
+                            columns= 'try_num',
                             values= 'insem_date')
         return self.pt
         
     def join_cols_to_pivot(self):
         
+        allxx = self.IUD.allx[['wy_id', 'u_read', 'days_milking']].copy()
+        allxx = allxx.set_index('wy_id', drop=True)
+        
+        pt1 = self.pt.reset_index()
+        
+        self.ipiv_pivot_table = (
+            pt1.merge(allxx, left_on='wy_id', right_index=True, how='left')
+              .sort_values('wy_id')
+              .reset_index(drop=True)
+        )
 
-        xxx = self.IUD.allx[['wy_id', 'u_read', 'days_milking']].set_index('wy_id', drop=True)
-        xxx.index = xxx.index.astype(int)#.astype(str)        
-        merge_1 = pd.merge(xxx, self.pt, how='right', left_index=True, right_index=True)
-        merge_1.index = merge_1.index.astype(int)
-
-        self.ipiv_pivot_table = merge_1.reset_index().sort_values('wy_id').reset_index(drop=True)
+        # self.ipiv_pivot_table = merge_1.reset_index().sort_values('wy_id').reset_index(drop=True)
         return self.ipiv_pivot_table
     
 

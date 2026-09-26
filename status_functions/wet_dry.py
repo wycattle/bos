@@ -170,7 +170,7 @@ class WetDry:
                 if heifer_start <= heifer_end:
                     n_heifer = (heifer_end - heifer_start).days + 1
                     day_num_blocks.append(np.arange(1, n_heifer + 1).reshape(-1, 1))
-                    label_blocks.append(np.full((n_heifer, 1), 'H0', dtype=object))
+                    label_blocks.append(np.full((n_heifer, 1), 'H', dtype=object))
                     earliest_date = heifer_start
 
             # --- LACTATION CYCLES: W/D alternating ---
@@ -281,7 +281,7 @@ class WetDry:
         
 
            # --- get max days wetdry for each period ---
-        period_labels = ['H0']                                   # heifer first
+        period_labels = ['H']                                   # heifer first
         for lact in self.lacts:                                  # W1, D1, W2, D2, ...
             period_labels.append(f'W{lact}')
             period_labels.append(f'D{lact}')

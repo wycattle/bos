@@ -20,10 +20,10 @@ class NetRevenueByCow:
         self.lactation_totals = self.Lact.lactation_totals        
 
         # DEBUG
-        print('lactation_totals:', type(self.lactation_totals), self.lactation_totals.shape)
-        print(self.lactation_totals.head())
-        print('feedcost:', type(self.total_feedcost_by_cow), self.total_feedcost_by_cow.shape)
-        print(self.total_feedcost_by_cow.head())
+        # print('lactation_totals:', type(self.lactation_totals), self.lactation_totals.shape)
+        # print(self.lactation_totals.head())
+        # print('feedcost:', type(self.total_feedcost_by_cow), self.total_feedcost_by_cow.shape)
+        # print(self.total_feedcost_by_cow.head())
 
 
               

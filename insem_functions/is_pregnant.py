@@ -24,7 +24,7 @@ class IsPregnant:
         self.milk = None
         self.wet_dry_days_daily = None
         self.period_daily = None
-        self.alive_ids = None
+
         self.ultra_4 = None
         self.ultra_pivot = None
         self.wd_letters = None
@@ -59,8 +59,6 @@ class IsPregnant:
         self.startdate  = self.DR.startdate
         self.lastday    = self.MB.lastday
         
-        #alive_ids includes heifers, milking and dry
-        self.alive_ids  = self.SD.alive_ids_today
         self.milk       = self.MA.weekly_avg.copy()
         
         self.wet_dry_days_daily  = self.WD.wet_dry_days_weekly[
@@ -74,22 +72,12 @@ class IsPregnant:
         self.wd_letters  = self.WD.wd_letters_daily.loc [self.startdate:,:]
         self.wd_lact_num = self.WD.wd_lact_num_daily.loc[self.startdate:,:]
         
-        self.daynums    = self.wet_dry_days_daily[self.alive_ids]  # not needed??
-        self.liters     = self.milk[self.alive_ids]
-        self.period     = self.period_daily[self.alive_ids].T
+        self.daynums    = self.wet_dry_days_daily  # not needed??
+        self.liters     = self.milk
+        self.period     = self.period_daily.T
         
-
-        # if isinstance(self.liters.index, pd.MultiIndex):
-        #     self.liters.index = pd.to_datetime(
-        #         self.liters.index.map(lambda x: f"{x[0]}-W{x[2]:02d}-1"),
-        #         format='%G-W%V-%u'
-            # )
-                    
-        start_lact_1 = self.MB.data['start_pivot']
-        self.start_lact = start_lact_1.loc[self.alive_ids, :] #cols are lact nums, rows are wy
-        
-        stop_lact_1  = self.MB.data['stop_pivot']
-        self.stop_lact  = stop_lact_1.loc[self.alive_ids, :]
+        self.start_lact = self.MB.data['start_pivot'] #cols are lact nums, rows are wy
+        self.stop_lact  = self.MB.data['stop_pivot']
 
         #methods
         self.ultra_4, self.ultra_pivot = self.create_ultra_ok_all_dates()
@@ -103,9 +91,7 @@ class IsPregnant:
         
         # ultra_1a= ultra_1.loc[(ultra_1['wy_id'])==94,:]
         ultra_2 = ultra_1.loc[(ultra_1['readex'] == 'ok')].reset_index(drop=True)
-        ultra_3 = ultra_2[ultra_2['wy_id'].isin(self.alive_ids)].reset_index(drop=True)
-        # #idxmax() returns the index label of the first occurrence of the maximum value for each group.
-        # idx     = ultra_3.groupby(['wy_id', 'calf_num'])['ultra_date'].idxmax() 
+        ultra_3 = ultra_2
         
         ultra_4a = (
             ultra_3.sort_values('ultra_date')
@@ -124,7 +110,7 @@ class IsPregnant:
     
     def create_preg_df_all_dates(self):
         dates = pd.date_range(self.startdate, self.lastday)
-        wyids = self.alive_ids
+        wyids = self.MB.data['wy_ids']
         results = {}  # collect columns as series
         
         for i in wyids:

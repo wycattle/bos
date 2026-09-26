@@ -195,6 +195,8 @@ class FeedCostByGroupByDay:
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/feed")
         output_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.cost_by_group_by_day_df.to_csv( output_dir / "cost_by_group_by_day_df.csv")
         self.feedcost_by_group_by_month_by_cow.to_csv(output_dir / "feedcost_by_group_by_month_by_cow.csv") 
         self.total_feedcost_by_cow.to_csv(output_dir / "self.total_feedcost_by_cow.csv")  
     

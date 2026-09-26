@@ -1,4 +1,4 @@
-'''heifer_cost_model.py'''
+'''feed_functions/heifers/heifer_cost_model.py'''
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -11,6 +11,7 @@ class HeiferCostModel:
 
         self.FCB = Feedcost_basics()
 
+    def load(self):
         
         self.milk_cost = 6 * 22
         
@@ -299,5 +300,6 @@ class HeiferCostModel:
             
             
 if __name__ == "__main__":
-    HeiferCostModel()            
+    obj = HeiferCostModel()
+    obj.load()            
            

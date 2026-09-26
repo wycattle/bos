@@ -28,12 +28,13 @@ class ModelGroups:
         self.fullday = None
         self.wet_dry_days_weekly = None
         self.wet_period_weekly = None
-        self.alive_ids_today = None
+
         self.ultra_4 = None
         self.ultra_pivot = None
         self.weeknums = None
         self.liters = None
         self.period = None
+        
         self.start_lact = None
         self.stop_lact = None
         self.pregnant = None
@@ -64,24 +65,22 @@ class ModelGroups:
         
         self.startdate = self.DR.startdate
         self.lastday  = self.MB.lastday
+        
+        self.fullday    = self.MA.weekly_avg  # created with start date from date_range
 
-        self.alive_ids_today  = self.SD.alive_ids_today
-        
-        self.fullday    = self.MA.weekly_avg  #this is created with start date from date_range
-
-        self.weeknums = self.wet_dry_days_weekly    #[self.alive_ids_today]
+        self.weeknums = self.wet_dry_days_weekly  
         
         
-        self.liters  = self.fullday          #[self.alive_ids_today]
-        self.period  = self.period_weekly    #[self.alive_ids_today]
+        self.liters  = self.fullday      
+        self.period  = self.period_weekly    
         
         start_lact_1 = self.MB.data['start_pivot']
         
         ''' #cols are lact nums, rows are wy '''
-        self.start_lact = start_lact_1     #.loc[self.alive_ids_today, :] 
+        self.start_lact = start_lact_1
         
         stop_lact_1  = self.MB.data['stop_pivot']
-        self.stop_lact  = stop_lact_1    #.loc[self.alive_ids_today, :]  
+        self.stop_lact  = stop_lact_1
         
         self.pregnant = self.IP.preg_df_weekly
         
@@ -300,6 +299,7 @@ class ModelGroups:
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/model_groups")
         output_dir.mkdir(parents=True, exist_ok=True)
+        self.model_groups_daily  .to_csv( output_dir / "model_groups_daily.csv")
         self.model_groups_monthly.to_csv( output_dir / "model_groups_monthly.csv")
         self.model_groups_weekly .to_csv( output_dir / "model_groups_weekly.csv")        
         

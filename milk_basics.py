@@ -1,10 +1,10 @@
 '''milk_basics.py'''
 import inspect
 import pandas as pd
-from container import get_dependency
+# from container import get_dependency
 from utilities.db_retry import retry_db
 from sqlalchemy import text
-from   pipeline.neon.neon_connect import get_engine, read_sql_table_traced
+from   pipeline.neon.neon_connect import get_engine
 
 
 class MilkBasics:
@@ -56,6 +56,8 @@ class MilkBasics:
         
         # date cols — self.lb / self.stop
         self.lb['b_date']   = pd.to_datetime(self.lb['b_date'], errors='coerce')
+        self.lb = self.lb.sort_values(['wy_id'], ascending=True).reset_index(drop=True)
+        
         self.stop['stop']   = pd.to_datetime(self.stop['stop_date'], errors='coerce')
         self.lb             = self.lb.fillna({'b_date': pd.NaT, 'calf_num': pd.NA})
         self.stop           = self.stop .fillna({'stop':   pd.NaT, 'calf_num': pd.NA})
@@ -65,13 +67,15 @@ class MilkBasics:
         self.bd['death_date'] = pd.to_datetime(self.bd['death_date'], errors='coerce')
         self.bd['arrived']    = pd.to_datetime(self.bd['arrived'],    errors='coerce')
         self.bd['adj_bdate']  = pd.to_datetime(self.bd['adj_bdate'],  errors='coerce')
-        self.bd = self.bd.sort_values('wy_id', ascending=True).reset_index(drop=True)
+        self.bd               = self.bd.sort_values('wy_id', ascending=True).reset_index(drop=True)
 
         # date cols — lb / u / i
         self.lb['b_date']    = pd.to_datetime(self.lb['b_date'],    errors='coerce')
         self.u['ultra_date'] = pd.to_datetime(self.u['ultra_date'], errors='coerce')
+        self.u               = self.u.sort_values(['wy_id', 'calf_num', 'try_num']).reset_index(drop=True)
+        
         self.i['insem_date'] = pd.to_datetime(self.i['insem_date'], errors='coerce')
-
+        self.i               = self.i.sort_values(['wy_id', 'calf_num', 'try_num']).reset_index(drop=True)
         self.wy_id_list = self.bd['wy_id'].tolist()
 
 

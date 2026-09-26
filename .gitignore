@@ -23,6 +23,7 @@ run_milk.py
 run_non_milk.py
 bos.egg-info/
 
+/pipeline/rclone/
 
 # Ignore all CSV files everywhere
 *.csv

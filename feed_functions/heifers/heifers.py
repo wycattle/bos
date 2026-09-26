@@ -1,58 +1,53 @@
-'''heifers.py'''
+'''feed_functions/heifers/heifers.py'''
+import  inspect
+from    datetime import datetime, timedelta
+import  pandas as pd
+import  numpy as np
+from    container import get_dependency
+from    sqlalchemy import text
+from    pipeline.neon.neon_connect import get_engine
 
-from datetime import datetime, timedelta
-import pandas as pd
-import numpy as np
-from container import get_dependency
-
+#This class is for heifers born/raised here --- bought from outside are treated in wet_dry
 
 class Heifers:
     def __init__(self):
-        self.FCB = get_dependency('feedcost_basics')
-        self.IUD = get_dependency('insem_ultra_data')
-
-        now = datetime.now()
-        self.today = pd.to_datetime(now)
-        self.rng = pd.date_range('2024-07-12', self.today)  # bdate of oldest heifer
-        self.days_to_sale = 365+365+60  # days to 2months before calving...based on insem at 18m
-        self.days_to_calf = 365+365+90  # 820 this is cut-off for feed calc
-
-        # Placeholders for data to be loaded/processed
+        print(f"Heifers instantiated by: {inspect.stack()[1].filename}")
+        self.engine = get_engine()
+        
         self.dry_feed_cost = None
-        self.dry_feed_kg = None
-        self.dry_feed_cost_kg = None
-        self.TMR_costper_kg = None
-        self.bean_cost = None
-
         self.heifers = None
         self.heifer_ids_list = None
         self.heifer_days = None
         self.milk_drinking_days = None
         self.cost_milk = None
-        self.TMR_cost = None
-        self.TMR_current_cost = None
-        self.yellow_beans_amt_days = None
-        self.yellow_beans_cost = None
 
-    def load_and_process(self):
-        # Feed costs
-        self.dry_feed_cost  = self.FCB.current_feedcost['dry_cost'].loc['sum']
-        self.dry_feed_kg    = self.FCB.current_feedcost['dry_kg'].loc['sum']
-        self.dry_feed_cost_kg = self.dry_feed_cost / self.dry_feed_kg
-        self.TMR_costper_kg = self.dry_feed_cost / self.dry_feed_kg
-        self.bean_cost  =  self.FCB.current_feedcost['unit_price'].loc['beans']
 
-        # Methods
-        self.heifers, self.heifer_ids_list = self.create_heifer_df()
+
+    def load(self):
+
+        self.today = pd.Timestamp.today().normalize()    
+        
+        with self.engine.connect() as conn:
+            self.heifers = pd.read_sql_table('heifers', conn)
+            self.feed_daily_cost_by_group   = pd.read_sql_table('feed_daily_cost_by_group', conn)
+            self.dry_feed_cost    = pd.DataFrame(self.feed_daily_cost_by_group['dry_cost']).sum(axis=0)
+            self.heifer_feed_cost = pd.DataFrame(self.feed_daily_cost_by_group['heifer_cost']).sum(axis=0)
+
+        self.process()
+        
+    def process(self):    
+
+        self.rng =  pd.date_range(start='2024-01-01', end=self.today, freq='D' )
+            
+
+        # Methodseartag_id_list
+        self.heifers = self.create_heifer_df()
         self.heifer_days = self.create_heifer_days()
 
         [self.milk_drinking_days,
          self.cost_milk] = self.calc_milkdrinking_days()
 
-        self.TMR_cost, self.TMR_current_cost = self.calc_TMR_days()
-
-        [self.yellow_beans_amt_days,
-         self.yellow_beans_cost] = self.create_yellow_beans_days()
+        self.calc_heifer_feed_days()
 
         self.align_days()
         
@@ -60,211 +55,85 @@ class Heifers:
     
     def create_heifer_df(self):
         
-        heifers1 = pd.read_csv("E:\\COWS\\data\\csv_files\\heifers.csv", 
-            header=0, index_col=None)
-        heifers1['b_date'] = pd.to_datetime(heifers1['b_date'])
-        heifers1['first_calf_bdate'] = pd.to_datetime(heifers1['calf_bdate'])
-        heifers1['adj_bdate'] = pd.to_datetime(heifers1['adj_bdate'])
-        heifers1['gone_date'] = pd.to_datetime(heifers1['gone_date'])
+        heifers1 = self.heifers
+        heifers1['b_date']              = pd.to_datetime(heifers1['b_date'])
+        heifers1['actual_calf_bdate']   = pd.to_datetime(heifers1['actual_calf_bdate'])
+        heifers1['est_calf_bdate']      = pd.to_datetime(heifers1['est_calf_bdate'])  
+        heifers1['arrived']             = pd.to_datetime(heifers1['arrived'])                
+        heifers1['gone_date']           = pd.to_datetime(heifers1['gone_date'])
         
         heifers1['age_days'] = (self.today - heifers1['b_date']).dt.days
 
         heifers1.reset_index()
-        self.heifer_ids_list = heifers1['heifer_ids'].to_list()
+        self.eartag_ids = heifers1['eartag_id'].astype(str)
         
         self.heifers = heifers1
                  
-        return self.heifers, self.heifer_ids_list
+        return self.heifers
     
-    def create_heifer_days(self):
-    
-        #   initialize dfs
-        days2 = pd.DataFrame(index=self.rng)
-        for i in self.heifers.index: #integer index from 0
-            
-            namex = self.heifer_ids_list[i]  # name will be the header of the days series
-            birth_date = self.heifers.loc[i,'b_date'].date()
-            calving_date = birth_date + timedelta(days=self.days_to_calf) #defined in constructor  integer 820 (days)
 
-            start = birth_date
-            stop = calving_date
-            
-            days_range = pd.date_range(start, stop)
-            day_nums_series = pd.Series(range(0,len(days_range)), index=days_range, name=namex)
-            days_nums_df = pd.DataFrame(day_nums_series, days_range)
-            days1  = days_nums_df.reindex(self.rng)
-                
-            days2 = pd.concat([days2, days1], axis=1)
-            
-        self.heifer_days = days2
+    def create_heifer_days(self):
+        heif  = self.heifers.set_index('eartag_id')
+        bdate = heif['b_date']
+
+        # (m x 1) dates minus (1 x n) birthdates -> (m x n) ages in days
+        dates_col    = self.rng.values[:, np.newaxis]     # (m, 1)
+        birthdates_r = bdate.values[np.newaxis, :]        # (1, n)
+        age_days = (dates_col - birthdates_r).astype('timedelta64[D]').astype(int) + 1  # birth date = day 1
+
+        df = pd.DataFrame(age_days, index=self.rng, columns=bdate.index)
+
+        dates = df.index.values[:, np.newaxis]            # (m, 1)
+
+        # lower bound: nothing before birth  (kills the negative days)
+        mask_lower = dates >= bdate.values[np.newaxis, :]
+
+        # upper bound: earlier of gone_date / actual_calf_bdate (NaT = still active, no bound)
+        # the .min(axis=1) at the end grabs the lessor of the two - so there is only one col left
+        upper      = pd.concat([heif['gone_date'], heif['actual_calf_bdate']], axis=1).min(axis=1)
+        has_upper  = upper.notna().values[np.newaxis, :]
         
+        upper_v    = upper.values[np.newaxis, :]
+        mask_upper = (~has_upper) | (dates <= upper_v)
+
+        self.heifer_days = df.where(mask_lower & mask_upper)
         return self.heifer_days
-    
+        
     
     def calc_milkdrinking_days(self):
-        milk_drinking_days1, milk_drinking_days =[],[]
-       
-        # heifer_ids_str = [str(x) for x in self.heifer_days.columns]  #heifer id nums -- in days. they are integer
         
-        for i in self.heifer_days.columns:  #strings now
-            
-            days3 = self.heifer_days[i]
-            milk_drinking_days1 = len(days3.loc
-            [( ~pd.isna(days3))
-                & (days3 < 90) 
-                & (days3 >=0)
-            ])
-            
-            milk_drinking_days.append(milk_drinking_days1)
-            milk_drinking_days1=[]
-        
-        self.milk_drinking_days = pd.DataFrame(milk_drinking_days, columns=self.heifer_ids.columns)
-  
-        return self.milk_drinking_days, self.cost_milk
+        days = self.heifer_days
+        # 'milk' where the heifer is 90 days old or younger, blank otherwise
+        milk = pd.DataFrame(
+            np.where(days <= 90, 'milk', None),
+            index=days.index,
+            columns=days.columns,
+        )
+
+        self.milk_drinking_days = milk
+        self.cost_milk = None  # set cost here when ready
+        return milk, self.cost_milk
+
+
     
-    def calc_TMR_days(self):
+    def calc_heifer_feed_days(self):
         
-        TMR_cost2 = TMR_cost3 = pd.DataFrame()
+        days = self.heifer_days
 
-        
-        for i in self.heifer_ids_list:
-            heif = self.heifers
-            heif = heif.set_index('heifer_ids_list', drop=True)
-            days = self.days.loc[:,i]     
-            max_days = days.max()
-            days_left = max_days - 90  # = days after 90 day milkdrinking 
-            
-            birth_date = pd.to_datetime(heif.loc[i,'birth_date'])
-            TMR_kg = self.dry_feed_kg
-            TMR_proportional_kg = TMR_kg / 90
-            # TMR_cost = self.dry_feed_cost
-            
-#cow moves to dry adult cows when preg - preg date should be entered manually and = ultra_date             
-            if not pd.isna(birth_date):  
-                end_date1   = birth_date
-                end_date   = pd.to_datetime(end_date1)
-            
-            elif pd.isna(birth_date):
-                end_date = self.today
-                
-                
+        # 'HFeed' where the heifer is older than the milk-drinking window (> 90 days)
+        hfeed = pd.DataFrame(
+            np.where(days > 90, 'HFeed', None),
+            index=days.index,
+            columns=days.columns,
+        )
 
-            if max_days<90:
-                pass
+        # leave a column for cost (filled later from feed_daily_cost_by_group['heifer_cost'])
+        hfeed['cost'] = None
 
-            elif days_left >0 :
-                
-                #set start / stop dates
-                    
-                start_TMR_growth1 = days[days == 90].index  #date when calf is 90 days old             
-                start_TMR_growth   = start_TMR_growth1.to_pydatetime()[0]   # converts from timestamp to datetime
+        self.heifer_feed_days = hfeed
+        return hfeed
 
-                if days_left < 275:     #stop date is from 90 + however many days the calf is not preg (as of 'today')
-                    stop_TMR_growth1 = days[days == (90 + days_left)].index  
-                    stop_TMR_growth = stop_TMR_growth1.to_pydatetime()[0]
-                
-                elif days_left >= 275:  #calf is alive for the full 6months of TMR_growth rations
-                    stop_TMR_growth1 = days[days == (90+270)].index  
-                    stop_TMR_growth = stop_TMR_growth1.to_pydatetime()[0]
-                    
-                    
-                    
-                # start stop dates are set
-                TMR_growth_range        = pd.date_range(start_TMR_growth, stop_TMR_growth)
-                TMR_growth_amt_array    = np.cumsum(np.full(len(TMR_growth_range), TMR_proportional_kg))
-                TMR_growth_cost_array   = TMR_growth_amt_array * self.TMR_costper_kg
-                
-                
-            # this section adds 'regular' feed (at the max ~20kg/day) 
-            if max_days < 365: 
-                 TMR_regular_cost_array  = np.array([])
-                 
-                 
-            elif max_days >= 365:     # TMR_growth + milkdrinking = 90+180=270
-                
-                start_TMR_regular1  = days[days == 366].index  
-                start_TMR_regular   = start_TMR_regular1[0]
-                  
-                TMR_regular_range       = pd.date_range(start_TMR_regular, end_date)
-                TMR_regular_cost_array  = np.full(len(TMR_regular_range), self.dry_feed_cost)   #cost/cow is constant in the 'regular' phase
-              
-
-            TMR_cost1       = np.concatenate([TMR_growth_cost_array, TMR_regular_cost_array], axis=0)
-
-            #convert from numpy to df
-            TMR_cost2     = pd.Series(TMR_cost1, name=i)
-            
-            #reindex to start at 90 so that the 90 days of milkdrinking will fit
-            TMR_cost2.index       = pd.RangeIndex(start=90, stop= 90 + len(TMR_cost2) )
-            
-            TMR_cost3 = pd.concat([TMR_cost3, TMR_cost2], axis=1)   #creates df
-
-            
-            # reinitialize
-            TMR_cost1 = TMR_cost2 =  np.array([])
-            
-        self.TMR_cost = TMR_cost3
-        self.TMR_current_cost = self.TMR_cost.sum(axis=0)
-        
-            
-        return self.TMR_cost, self.TMR_current_cost
-    
-    def create_yellow_beans_days(self):
-        
-        yellow_beans_amt_days2 = pd.DataFrame()
-        yellow_beans_cost2 = pd.DataFrame()
-        
-        for i in self.heifer_ids_list:
-            
-            heif = self.heifers
-            heif = heif.set_index('heifer_ids_list', drop=True)
-            days = self.days.loc[:,i]     
-            max_days = days.max()
-            amt_beans = 1   #manually enter current amount (kgs)
-            
-            
-            
-            if max_days<120:
-                if not  yellow_beans_amt_days2.empty:
-                    blank_col = pd.Series( name=i)
-                    yellow_beans_amt_days2  = pd.concat([yellow_beans_amt_days2, blank_col], axis=1)
-                    yellow_beans_cost2      = pd.concat([yellow_beans_cost2, blank_col], axis=1)
-                    
-                if yellow_beans_amt_days2.empty:
-                    yellow_beans_amt_days2  = pd.Series( name=i)
-                    yellow_beans_cost2 = pd.Series( name=i)
-            
-            elif max_days>=120:
-                start1 = days[days == 120].index
-                if max_days <150:
-                    stop1  = days[days == max_days].index
-                    
-                elif max_days >=150:
-                    stop1 = days[days == 150].index
-                
-                start = start1[0]       #120 days after birth
-                stop = stop1[0]
-                
-                yellow_beans_date_range     = pd.date_range(start, stop )
-                yellow_beans_amt_days1      = np.full(len(yellow_beans_date_range), amt_beans)
-                yellow_beans_amt_days_series= pd.Series(yellow_beans_amt_days1, name = i)
-                
-                yellow_beans_cost1      = yellow_beans_amt_days_series * self.bean_cost
-                
-                yellow_beans_amt_days2  = pd.concat([yellow_beans_amt_days2, yellow_beans_amt_days_series], axis=1)
-                yellow_beans_cost2      = pd.concat([yellow_beans_cost2, yellow_beans_cost1], axis=1)
-                
-                yellow_beans_amt_days1 = yellow_beans_cost1  = np.array([])
-                yellow_beans_cost1 = pd.Series()
-                
-        
-        yellow_beans_amt_days2.index    = pd.RangeIndex(120, 120 + len(yellow_beans_amt_days2))
-        yellow_beans_cost2.index        = pd.RangeIndex(120, 120 + len(yellow_beans_cost2))
-            
-        self.yellow_beans_amt_days  = yellow_beans_amt_days2
-        self.yellow_beans_cost      = yellow_beans_cost2
-            
-        return self.yellow_beans_amt_days, self.yellow_beans_cost
+ 
      
     def align_days(self):
         
@@ -285,18 +154,7 @@ class Heifers:
             milk_days1 = pd.Series(milk_amt, index=milk_index)
             milk_days = milk_days1.reindex(age_range, fill_value=0)
 
-            bean_days1 = self.yellow_beans_amt_days[i]
-            bean_index = pd.RangeIndex(120, (120+len(bean_days1)), step=1, name=i)
-            bean_days1.index = bean_index
-            bean_days = bean_days1.reindex(age_range, fill_value=0)
 
-            TMR_days1 = self.TMR_amt_days[i]
-            TMR_index = pd.RangeIndex(90, age1, step=1, name=i)
-            # TMR_days1.index = TMR_index
-            TMR_days = TMR_days1.reindex(age_range, fill_value=0)
-            
-            new_index = pd.DataFrame( index = age_range)
-            days_df = pd.concat([new_index, milk_days, bean_days, TMR_days])
             
         
         return
@@ -304,4 +162,4 @@ class Heifers:
      
 if __name__ == "__main__":
     obj = Heifers()
-    obj.load_and_process()    
+    obj.load()    

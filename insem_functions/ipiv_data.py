@@ -39,22 +39,37 @@ class IpivData:
         lc = lc2.rename(columns={'last_calf_num' : 'lact_num'})
          
         # Filter with alive_ids
-        this_calf = lc[lc['wy_id'].isin(self.alive_ids)].reset_index(drop=True)
-        insem1 = self.insem.copy()
+        this_calf_2 = lc[lc['wy_id'].isin(self.alive_ids)].reset_index(drop=True)
+        
+        insem1      = self.insem.copy()
+        insem2      = insem1[insem1['wy_id'].isin ( self.alive_ids)].reset_index(drop=True)
+        
         insem1['calf_num'] = insem1['calf_num'].fillna('0').astype(int)
         
-        # this_calf1 adds the try_nums to the 'last_calf' (now called 'lact_num)
+        # this_calf_3 adds the try_nums to the 'last_calf' (now called 'lact_num)
         # and it gives us the date of the last insem...........
-        this_calf1 = this_calf.merge(insem1,
+        this_calf_3 = this_calf_2.merge(insem2,
                                       left_on=['wy_id', 'lact_num'],
                                       right_on=['wy_id', 'calf_num'],
-                                      how='left')
+                                      how='right')
 
-        this_calf2 = this_calf1.drop(columns=['calf_num','typex', 'readex'])
-
-        this_calf2['try_num'] = this_calf2['try_num'].fillna(0).astype(int)  # in case a NaN try_num sneaks through
-        this_calf2['insem_date'] = pd.to_datetime(this_calf2['insem_date'], errors='coerce').dt.date
-        self.ipiv_data = this_calf2
+        this_calf_3 = this_calf_3.drop(columns=['lact_num','typex', 'readex'])
+        
+        max_calf = (
+            this_calf_3.groupby('wy_id')['calf_num']
+            .max()
+            .rename('max_calf')
+            .reset_index()
+        )
+            
+            
+        this_calf_4 = this_calf_3.merge(max_calf, on='wy_id', how='left')
+        this_calf_4 = this_calf_4[this_calf_4['calf_num'] == this_calf_4['max_calf']].copy()  
+        this_calf_4 = this_calf_4.rename(columns = {'calf_num' : 'lact_num' })
+        this_calf_4 = this_calf_4.drop(columns='max_calf') 
+        this_calf_5 = this_calf_4.reset_index(drop=True)                 
+        
+        self.ipiv_data = this_calf_5
         return self.ipiv_data
     
 

@@ -75,7 +75,7 @@ class OccasionalModal:
             "datex": "datex", "desc_1": "text", "value": "float",
         })
         self.ipiv_pivot_table_fmt = FormatForNeon(
-            schema={"wy_id": "int", "u_read": "text", "days_milking": "int"},
+            schema={"wy_id": "int", "lact_num": "int", "u_read": "text", "days_milking": "int"},
             positional_rules=[(3, None, "date")],
         )
         self.net_revenue_table_fmt = FormatForNeon(

@@ -347,7 +347,7 @@ class Container:
         return ModelGroups()
         
     def _create_whiteboard_groups(self):
-        from groups_and_tests.whiteboard_groups import WhiteboardGroups
+        from groups_and_tests.whiteboard_groups2 import WhiteboardGroups
         wg = WhiteboardGroups()
         return wg
     

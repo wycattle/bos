@@ -3,7 +3,7 @@
 from    datetime import datetime, timedelta
 import  inspect
 import  pandas  as pd
-
+from pathlib import Path
 from container import get_dependency
 
 class InsemUltraData:
@@ -63,10 +63,14 @@ class InsemUltraData:
         self.last_valid_ultra   = self.create_last_valid_ultra()
         self.last_invalid_ultra = self.create_last_invalid_ultra()
         self.df7                = self.create_df()
+        
         (self.allx, self.all_milking, 
         self.all_dry, self.all_preg, 
         self.all_not_preg, self.days_milking) = self.create_allx()
+        
         self.not_preg, self.no_insem = self.create_not_preg_df()
+        
+        self.write_to_csv()
         
         
     def create_last_insem(self):
@@ -308,9 +312,16 @@ class InsemUltraData:
             notpreg3['i_date'] .isna()
         ].sort_values('days_milking', ascending=False).reset_index(drop=True)
 
-
-
         return self.not_preg, self.no_insem
+    
+    
+
+    def write_to_csv(self):
+        output_dir = Path("/home/alanw/Documents/vsCode_output/insem")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.allx    .to_csv(output_dir / "allx.csv")
+        
 
 
 

@@ -7,6 +7,7 @@ Uses: get_dependency from container.py and allx from insem_ultra_data.py
 """
 
 import pandas as pd
+from pathlib import Path
 from container import get_dependency
 
 
@@ -16,15 +17,16 @@ class NextUltraCheck:
         insem_ultra_data = get_dependency('insem_ultra_data')
         self.allx = insem_ultra_data.allx.copy()
         self.next_ultra_check = None
-        self.create_get_next_ultra_check = None
 
     def load(self):
         self.process()
         
     def process(self):
-        # Register the method for creating next ultra check DataFrame
-        self.create_get_next_ultra_check = self._create_get_next_ultra_check
-        self.next_ultra_check = self.create_get_next_ultra_check()
+
+        # methods
+        self.next_ultra_check = self._create_get_next_ultra_check()
+        self.write_to_csv()
+        
 
     def _create_get_next_ultra_check(self):
         # Filter rows where 'age_insem' is not null and 'u_date' is null
@@ -53,6 +55,14 @@ class NextUltraCheck:
 
     def get_next_ultra_check(self):
         return self.next_ultra_check
+
+
+    def write_to_csv(self):
+        output_dir = Path("/home/alanw/Documents/vsCode_output/insem")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.next_ultra_check    .to_csv(output_dir / "next_ultra_check.csv")
+
 
 if __name__ == "__main__":
     obj = NextUltraCheck()

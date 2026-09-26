@@ -96,27 +96,6 @@ class FeedcostBasics:
         
         return self.feedcost_F_df, self.feedcost_A_df, self.feedcost_B_df, self.feedcost_C_df, self.feedcost_D_df, self.feedcost_H_df 
     
-
-    # Optionally store per-feed breakdowns if needed later
-    # self.feedcost_detail = ...
-
-    # def _compile_group_dataframe(self, cost_dict: dict, group_name: str) -> pd.DataFrame:
-    #     """One column per feed's daily cost, plus a totalcost{group_name} sum column."""
-    #     group_cost_table = pd.DataFrame({f: pd.Series(cost_dict[f]).astype(float) for f in self.feed_types})
-    #     group_cost_table = group_cost_table.fillna(0)
-    #     group_cost_table[f'totalcost{group_name}'] = group_cost_table.sum(axis=1)
-    #     group_cost_table.index = self.rng_daily
-    #     return group_cost_table
-
-    # def _calculate_all_group_costs(self):
-    #     """Daily feed cost, per feed and total, for each of the 4 groups (heifers deferred)."""
-    #     self.feedcost_F_df = self._compile_group_dataframe(self._calculate_single_group_costs('fresh_kg'), 'F')
-    #     self.feedcost_A_df = self._compile_group_dataframe(self._calculate_single_group_costs('group_a_kg'), 'A')
-    #     self.feedcost_B_df = self._compile_group_dataframe(self._calculate_single_group_costs('group_b_kg'), 'B')
-    #     self.feedcost_C_df = self._compile_group_dataframe(self._calculate_single_group_costs('group_c_kg'), 'C')
-    #     self.feedcost_D_df = self._compile_group_dataframe(self._calculate_single_group_costs('dry_kg'), 'D')
-
-
 if __name__ == "__main__":
-    processor = FeedcostBasics()
-    processor.load()
+    obj = FeedcostBasics()
+    obj.load()

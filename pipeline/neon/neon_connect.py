@@ -1,8 +1,12 @@
 '''pipeline/neon/neon_connect.py '''
 import os
 import re
+from pathlib import Path
 import pandas as pd
 from sqlalchemy import create_engine, event
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
+
 from container import container
 
 _TABLE_RE = re.compile(r'\bFROM\s+"?(\w+)"?', re.IGNORECASE)
