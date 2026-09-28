@@ -30,8 +30,7 @@ def _attach_table_tracing(engine):
 
 def get_engine(branch: str = "production"):
     urls = {
-        "production":  os.environ["DATABASE_URL"],
-        "dev-testing": os.environ["DEV_DATABASE_URL"],
+        "production":  os.environ["DATABASE_URL"]
     }
     engine = create_engine(urls[branch])
     return _attach_table_tracing(engine)
