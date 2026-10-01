@@ -39,13 +39,16 @@ class DailyModal:
         self.fullday = None
         self.WB_groups_tenday = None
         self.groups = None
-
-
+        self.lactation_totals = None
+        self.fullday_stats = None
 
         self.tenday_formatted = None
         self.halfday_formatted = None
         self.fullday_formatted = None
         self.WB_groups_formatted = None
+        self.max_days_per_period_formatted = None
+        self.lactation_totals_formatted = None
+        self.fullday_stats_formatted = None
 
 
         # one FormatForNeon instance per table
@@ -82,18 +85,65 @@ class DailyModal:
             sort_by=[("group_name", "asc"),
                      ("avg", "desc")],
         )
-     
+        
+        self.max_days_per_period_fmt = FormatForNeon(
+            schema={ 
+                "wy_id" : "int",
+                "H"  : "int",	
+                "W1" : "int",	
+                "D1" : "int",	
+                "W2" : "int",	
+                "D2" : "int",	
+                "W3" : "int",	
+                "D3" : "int",	
+                "W4" : "int",	
+                "D4" : "int",	
+                "W5" : "int",	
+                "D5" : "int",	
+                "W6" : "int",	
+                "D6" : "int"
+                }
+            )
+                
+        self.lactation_totals_fmt = FormatForNeon(
+            schema={
+                "wy_id"     : "int",
+                "l1_liters" : "float",
+                "l2_liters" : "float",
+                "l3_liters" : "float",
+                "l4_liters" : "float",
+                "l5_liters" : "float",
+                "l6_liters" : "float",
+                "total_liters"       : "float"
+            }
+        )
+        
+        self.fullday_stats_fmt = FormatForNeon(
+            schema={
+                "wy_id"  : "int",
+                "liters" : "float",
+                "count"  : "int",
+                "avg"    : "float"
+            }
+        )
+                    
 
     def load_and_process(self):
         
         from container import get_dependency
         self.MA = get_dependency('milk_aggregates')
-        self.MAB = get_dependency('milk_aggregates_basic')
+        self.MAB= get_dependency('milk_aggregates_basic')
         self.WG = get_dependency('whiteboard_groups')
+        self.WD = get_dependency('wet_dry')
+        self.L  = get_dependency('lactations')
+        
 
         #methods
         (self.tenday_formatted, self.halfday_formatted,
-         self.fullday_formatted, self.WB_groups_formatted) = self.createDailyData()
+         self.fullday_formatted, self.WB_groups_formatted, 
+         self.max_days_per_period_formatted,
+         self.lactation_totals_formatted,
+         self.fullday_stats_formatted )            = self.createDailyData()
 
         from   pipeline.neon.neon_connect import get_engine, read_sql_table_traced
         engine = get_engine()
@@ -114,6 +164,16 @@ class DailyModal:
 
             self.groups_fmt.write_conn(
                 self.WB_groups_formatted, 'wb_groups_formatted', conn, pk_col='wy_id')
+            
+            self.max_days_per_period_fmt.write_conn(
+                self.max_days_per_period_formatted, 'max_days_per_period_formatted', conn, pk_col='wy_id')
+            
+            self.lactation_totals_fmt.write_conn(
+                self.lactation_totals_formatted, 'lactation_totals_formatted', conn, pk_col='wy_id')
+            
+            self.fullday_stats_fmt.write_conn(
+                self.fullday_stats_formatted, 'fullday_stats_formatted', conn, pk_col='wy_id'
+            )
 
 
     def createDailyData(self):
@@ -122,13 +182,20 @@ class DailyModal:
         specific to this report. No dtype coercion here — FormatForNeon
         handles that per-table in write_to_neon, at write time.
         """
-        self.tenday = self.MA.tenday.copy()
+        self.tenday  = self.MA.tenday.copy()
         self.halfday = self.MA.halfday.copy()
         self.fullday = self.MAB.fullday.copy()
-        self.WB_groups_tenday = self.WG.whiteboard_groups_tenday.copy()
 
-        return [self.tenday, self.halfday, self.fullday, self.WB_groups_tenday,
-]
+        self.WB_groups_tenday    = self.WG.whiteboard_groups_tenday.copy()
+        self.max_days_per_period = self.WD.max_days_per_period.copy()
+        self.lactation_totals    = self.L.lactation_totals.copy()
+        self.fullday_stats       = self.MAB.fullday_stats.copy() 
+        
+
+        return [self.tenday, self.halfday, self.fullday, 
+                self.WB_groups_tenday, self.max_days_per_period,
+                self.lactation_totals, self.fullday_stats 
+                ]
 
 
 if __name__ == "__main__":

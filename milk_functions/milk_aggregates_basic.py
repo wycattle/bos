@@ -62,11 +62,18 @@ class MilkAggregatesBasic:
          self.liters_am_np, self.liters_pm_np
          ] = self.basics()
 
-        [self.am, self.pm, self.fullday_preClean,
+        [self.am, self.pm, 
+         self.fullday_preClean,
          self.fullday_lastdate] = self.fullday_calc()
         
-        self.fullday = self.fullday_interpolation()
+        [self.fullday, 
+         self.fullday_row_sum, 
+         self.fullday_col_sum,
+         self.fullday_milking_count] = self.fullday_interpolation()
+        
+        self.fullday_stats = self.create_fullday_stats()
 
+        # MB milk gets populated here to avoice circularity
         self.MB.data['milk'] = self.fullday_preClean
 
     def basics(self):
@@ -211,10 +218,25 @@ class MilkAggregatesBasic:
         fullday_clean_1 = self.fullday_preClean.where(~fullday_wet_mask, interpolated)
         
         self.fullday = fullday_clean_1.loc[self.start_date :, :]
+        self.fullday_row_sum = fullday_clean_1.sum(axis=1)
+        self.fullday_col_sum = fullday_clean_1.sum(axis=0)
+        self.fullday_milking_count = (fullday_clean_1 > 0).sum(axis=0)
 
-
-
-        return self.fullday
+        return self.fullday, self.fullday_row_sum, self.fullday_col_sum, self.fullday_milking_count
+    
+    
+    def create_fullday_stats(self):
+        
+        col_sum = self.fullday_col_sum
+        count = self.fullday_milking_count
+        avg = col_sum / count
+        
+        stats = pd.concat([col_sum, count, avg], axis=1)
+        stats.columns = ['liters', 'count', 'avg']
+        stats.index.name = 'wy_id'
+        stats = stats.reset_index()
+        self.fullday_stats = stats
+        return self.fullday_stats
 
 
 if __name__ == '__main__':

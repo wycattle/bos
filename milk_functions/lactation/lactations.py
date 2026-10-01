@@ -39,7 +39,7 @@ class Lactations:
     def process(self):
 
         self.all_ids        = self.LB.headers #wy_ids - str
-        self.alive_ids  = self.SD.alive_ids_today
+        self.alive_ids  = self.SD.alive_ids_today_list
 
         #methods
        
@@ -162,14 +162,16 @@ class Lactations:
         cols = [str(c) for c in self.alive_ids]
 
         total_liters = pd.DataFrame({
-            "L1_total_liters": self.L1_total_liters,
-            "L2_total_liters": self.L2_total_liters,
-            "L3_total_liters": self.L3_total_liters,
-            "L4_total_liters": self.L4_total_liters,
-            "L5_total_liters": self.L5_total_liters,
-            "L6_total_liters": self.L6_total_liters,
+            "L1_liters": self.L1_total_liters,
+            "L2_liters": self.L2_total_liters,
+            "L3_liters": self.L3_total_liters,
+            "L4_liters": self.L4_total_liters,
+            "L5_liters": self.L5_total_liters,
+            "L6_liters": self.L6_total_liters,
         }).reindex(cols)
-        total_liters['sum'] = total_liters.sum(axis=1)
+        total_liters['total_liters'] = total_liters.sum(axis=1)
+        total_liters.index.name = 'wy_id'
+        total_liters = total_liters.reset_index()
 
         self.lactation_totals = total_liters
         return self.lactation_totals

@@ -24,7 +24,7 @@ class status_data:
         #methods
         self.status_col = None
         self.status_col_all = None
-        self.alive_ids_today = None
+        self.alive_ids_today_list = None
               
 
     def load(self):
@@ -48,6 +48,8 @@ class status_data:
           #methods
         [self.status_col, 
          self.status_col_all]       = self.create_status()
+        
+        self.alive_ids_today_list   = self.create_alive_ids_today()
         
         self.write_to_csv()
         
@@ -100,9 +102,18 @@ class status_data:
                     status_col_1.at[date, wy] = 'dry'
         
         self.status_col_all = status_col_1
-        self.status_col = status_col_1.iloc[-1,:]
+        self.status_col = status_col_1.iloc[-1,:].copy()
             
         return self.status_col, self.status_col_all
+    
+    
+    def create_alive_ids_today(self):
+        status_list = ['nby','milking','heifer','gone','dry']
+        sct = self.status_col
+        alive_ids = sct[sct.isin(['milking','dry'])].index.to_list()
+        self.alive_ids_today_list = alive_ids
+        
+        return self.alive_ids_today_list
     
     
     def write_to_csv(self):
