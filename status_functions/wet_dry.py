@@ -91,7 +91,7 @@ class WetDry:
          self.wd_lact_num_weekly)   = self.reform_period_weekly()
         
         self.wet_dry_days_weekly    = self.create_wet_dry_days_weekly()
-        self.write_to_csv()
+
         
 
     def create_wet_dry_daily(self):
@@ -296,6 +296,9 @@ class WetDry:
         m.index.name = 'wy_id'
         m = m.reset_index()
         m = m.drop(columns=['gone'])
+        m['total'] = m.iloc[:,1:].sum(axis=1)
+        wet_total = m[['W1','W2','W3','W4','W5','W6']].sum(axis=1)
+        m['wet_pct'] = (wet_total / m['total']).round(2)
         
         self.max_days_per_period = m
         
@@ -392,4 +395,5 @@ class WetDry:
 
 if __name__ == '__main__':
     obj=WetDry()
-    obj.load()      
+    obj.load()
+    obj.write_to_csv()      

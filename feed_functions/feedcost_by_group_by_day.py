@@ -26,7 +26,7 @@ class FeedCostByGroupByDay:
         self.cost_c = None
         self.cost_d = None
         self.cost_h = None
-        self.feedcost_by_group_by_day_df = None
+        self.feedfeedcost_by_group_by_day_df = None
         self.feedcost_by_group_by_week_df = None
         
     def load(self):
@@ -52,13 +52,12 @@ class FeedCostByGroupByDay:
         self.cost_h = self.FB.feedcost_H_df
 
      #methods
-        self.feedcost_by_group_by_day_df    = self.create_feedcost_by_group_by_day()
+        self.feedfeedcost_by_group_by_day_df    = self.create_feedcost_by_group_by_day()
         self.feedcost_by_group_by_week_df   = self.create_feedcost_by_group_by_week()
         
         [self.feedcost_by_group_by_month_by_cow, 
         self.total_feedcost_by_cow]         = self.create_feedcost_by_group_by_month()
         
-        self.write_to_csv()
             
     def create_feedcost_by_group_by_day(self):
         
@@ -109,8 +108,8 @@ class FeedCostByGroupByDay:
 
 
         cost_by_group_df = merged.pivot(index='date', columns='wy_id', values='cost')
-        self.cost_by_group_by_day_df = cost_by_group_df
-        return self.cost_by_group_by_day_df
+        self.feedcost_by_group_by_day_df = cost_by_group_df
+        return self.feedcost_by_group_by_day_df
         
         
     def create_feedcost_by_group_by_week(self):
@@ -196,7 +195,7 @@ class FeedCostByGroupByDay:
         output_dir = Path("/home/alanw/Documents/vsCode_output/feed")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        self.cost_by_group_by_day_df.to_csv( output_dir / "cost_by_group_by_day_df.csv")
+        self.feedcost_by_group_by_day_df.to_csv( output_dir / "feedcost_by_group_by_day_df.csv")
         self.feedcost_by_group_by_month_by_cow.to_csv(output_dir / "feedcost_by_group_by_month_by_cow.csv") 
         self.total_feedcost_by_cow.to_csv(output_dir / "self.total_feedcost_by_cow.csv")  
     
@@ -204,3 +203,4 @@ class FeedCostByGroupByDay:
 if __name__ == "__main__":
     obj = FeedCostByGroupByDay()
     obj.load()
+    obj.write_to_csv()

@@ -2,6 +2,8 @@
 import inspect
 from pathlib import Path
 import pandas as pd
+import numpy as np
+from datetime import datetime
 from container import get_dependency
 
 
@@ -39,71 +41,75 @@ class status_data:
 
         self.startdate = self.DR.startdate
         self.enddate_daily =self.DR.enddate_daily     
-        self.lb = self.MB.data['lb']
-        self.bd = self.MB.data['bd']
-        bd = self.MB.data['bd'].set_index('wy_id')
+        self.lb = self.MB.data['lb'].copy()
+        self.bd = self.MB.data['bd'].copy()
+        self.bd = self.MB.data['bd'].set_index('wy_id')
         
         self.wy_ids = self.MB.data['wy_ids']
              
           #methods
+        self.wy_age = self.create_age_wy()
+        
         [self.status_col, 
          self.status_col_all]       = self.create_status()
         
         self.alive_ids_today_list   = self.create_alive_ids_today()
         
         self.write_to_csv()
+
+
+    def create_age_wy(self):    # age_wy means age since it arrived ...
+        today   = pd.Timestamp.now().normalize()
+        bd      = self.bd.reset_index()
+        b_date  = pd.to_datetime(bd['b_date'])
+        d_date  = pd.to_datetime(bd['death_date'])
+        adj_bdate = pd.to_datetime(bd['adj_bdate'])
         
-              
+        # vectorized: dead cows = (death_date - b_date), alive = (today - b_date)
+        # numpy.where(condition, [x, y, ]/) ie np.where(condition, if_true, if_false)  
+        # and the / at the end means: This slash forbids keyword arguments!
+        condition = d_date.notna() #death date exists
+        
+        age = np.where(
+                condition,          #the condition
+                d_date - adj_bdate, #this is the True half of the bool
+                today - adj_bdate,  #this is the False half of the bool
+            )
+        bd['wy_age'] = bd['wy_age'] = pd.Series(age).dt.days.astype('Int64')
+        
+        self.wy_age = bd
+        
+        return    self.wy_age
+        
+
     def create_status(self):
-        ''' uses weekly data from milk_basics to determine milking groups - for the 'model_groups'''
-        bd_1 = self.bd.set_index('wy_id')
-        lb_1 = self.lb[['wy_id', 'b_date', 'calf_num' ]].set_index('wy_id')
-        wyids = self.wy_ids
-        f_1 = self.MAB.fullday
-     
-        wetdry_period   = self.WD.period_weekly
-        wetdry_days     = self.WD.wet_dry_days_weekly
-        
-        fullday = f_1.loc[pd.Timestamp(self.startdate):, :].copy()        
+        bd_1 = self.bd
+        wyids = list(self.wy_ids)
+        fullday = self.MAB.fullday.loc[pd.Timestamp(self.startdate):, :]
         date_index = fullday.index
-        status_col_1 = pd.DataFrame(index=date_index, columns=wyids, dtype='object')
-        
-        #df with the wy_id, b_dates and calf_num (all '1') for all cows that had a first calf
-        lb_1_first_df = lb_1[lb_1['calf_num'] == 1]  #  & lb_1['b_date'].notna()
 
-        # Precompute first_calf mask aligned with all wyids (True if wy in lb_1 with calf_num == 1)
-        first_calf_list = lb_1_first_df.index.to_list()
-        first_calf_bdate_series = lb_1_first_df['b_date']        
+        # per-cow vectors (shape 1 x n_cows)
+        b_date = pd.to_datetime(bd_1.loc[wyids, 'b_date']).to_numpy()[None, :]
+        d_date = pd.to_datetime(bd_1.loc[wyids, 'death_date']).to_numpy()[None, :]
 
+        first = self.lb.loc[self.lb['calf_num'] == 1, ['wy_id', 'b_date']].drop_duplicates('wy_id')
+        first_bdate = first.set_index('wy_id')['b_date'].reindex(wyids)
+        # keeps your original logic: heifer only if any first-calf rows exist at all
+        heifer = (len(first) > 0) & first_bdate.isna().to_numpy()[None, :]
 
-        #.loc returns a Series (or DataFrame slice) when the index has duplicate labels or when you pass a list/slice. It can also access multiple elements.
-        #.at always returns a scalar (single value) and only works with a single row/column pair. It's faster and safer when you know you have a unique index.                             
-        for wy in wyids:
-            b_date = bd_1.at[wy, 'b_date']   # scalar Timestamp
-            d_date = bd_1.at[wy, 'death_date']
-            first_calf_bdate = first_calf_bdate_series.get(wy, pd.NaT)              
-            
-            for date in date_index:
+        # per-date / cell matrices (n_dates x n_cows)
+        dates = date_index.to_numpy()[:, None]
+        milking = (fullday.reindex(columns=wyids).to_numpy() > 0)   # NaN -> False
+        nby = dates < b_date
+        gone = dates >= d_date                                        # NaT -> False
 
-                
-                if date < b_date:
-                    status_col_1.at[date, wy] = 'nby'
-                    
-                elif fullday.at[date, wy] > 0:
-                    status_col_1.at[date, wy] = 'milking'
-                    
-                elif first_calf_list and pd.isna(first_calf_bdate):
-                    status_col_1.at[date, wy] = 'heifer'
-                                                           
-                elif pd.notnull(d_date) and date>=d_date:
-                    status_col_1.at[date, wy] = 'gone'
-                    
-                else: # Not milking, not nby, not gone, not heifer => dry
-                    status_col_1.at[date, wy] = 'dry'
-        
-        self.status_col_all = status_col_1
-        self.status_col = status_col_1.iloc[-1,:].copy()
-            
+        arr = np.select(
+            [nby, milking, heifer, gone],
+            ['nby', 'milking', 'heifer', 'gone'],
+            default='dry',
+        )
+        self.status_col_all = pd.DataFrame(arr, index=date_index, columns=wyids, dtype='object')
+        self.status_col = self.status_col_all.iloc[-1, :].copy()
         return self.status_col, self.status_col_all
     
     
@@ -116,11 +122,15 @@ class status_data:
         return self.alive_ids_today_list
     
     
+    
+    
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/status")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        self.status_col    .to_csv(output_dir / "status_col.csv")
+        self.status_col     .to_csv( output_dir / "status_col.csv")
+        self.status_col_all .to_csv( output_dir / "status_col_all.csv")
+        self.wy_age         .to_csv( output_dir / "wy_age.csv")
     
     
 if __name__ == "__main__":

@@ -101,7 +101,9 @@ class DailyModal:
                 "W5" : "int",	
                 "D5" : "int",	
                 "W6" : "int",	
-                "D6" : "int"
+                "D6" : "int",
+                "total" : "int",
+                "wet_pct" : "float"
                 }
             )
                 

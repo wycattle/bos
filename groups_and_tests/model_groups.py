@@ -5,6 +5,12 @@ import numpy as np
 from pathlib import Path
 from container import get_dependency
 
+        
+_LABEL_TO_KEY = {
+    'H': 'heifer_ids', 'D': 'dry_ids', 'G': 'missing_ids', 'F': 'fresh_ids',
+    'A': 'group_A_ids', 'B': 'group_B_ids', 'C': 'group_C_ids',
+}
+
 class ModelGroups:
 
     def __init__(self):
@@ -84,218 +90,78 @@ class ModelGroups:
         
         self.pregnant = self.IP.preg_df_weekly
         
-              
-        #methods
-  
-        self.model_groups_daily,
-        self.model_groups_daily_dict    = self.create_model_groups_daily()
         
-        self.model_groups_weekly,
-        self.model_groups_weekly_dict   = self.create_model_groups_weekly()
-        
-        self.model_groups_monthly,
-        self.model_groups_monthly_dict  = self.create_model_groups_monthly()
-        
-        self.write_to_csv()        
-    
-       
-    def create_model_groups_daily(self):
-        liters_1   = self.liters
-        week_num_1 = self.weeknums
-        pregnant_1 = self.pregnant
-        period_1   = self.period
-        
-        
-        # Align all frames to liters_1 so np.select gets same-shape conditions
-        week_num_1 = week_num_1 .reindex(index=liters_1.index, columns=liters_1.columns)
-        pregnant_1 = pregnant_1 .reindex(index=liters_1.index, columns=liters_1.columns)
-        period_1   = period_1   .reindex(index=liters_1.index, columns=liters_1.columns)
+        # methods
+        # self.create_model_groups_daily()
+        # self.create_model_groups_weekly()
+        # self.create_model_groups_monthly()
+        self.create_model_groups()
 
-        period_letter = period_1.astype('string').apply(
-            lambda col: col.str.extract(r'([A-Za-z]+)')[0]
-        )
-        is_heifer = period_letter == 'H'
-        is_dry    = period_letter == 'D'
-        is_preg   = pregnant_1 == 'preg'
-        missing   = (week_num_1.isna() | liters_1.isna()) & ~is_heifer & ~is_dry
-
-        conditions = [
-            is_heifer,
-            is_dry,
-            missing,
-            week_num_1 < 3,
-            (week_num_1 >= 3) & (liters_1 >= 15),
-            (week_num_1 >= 3) & (liters_1 > 0) & (liters_1 < 15) & is_preg,
-            (week_num_1 >= 3) & (liters_1 > 0) & (liters_1 < 15) & ~is_preg,
-        ]
-        choices = ['H', 'D', None, 'F', 'A', 'C', 'B']
-
-        cond_arrs = [
-            c.to_numpy(dtype=bool, na_value=False) if not c.empty
-            else np.zeros(liters_1.shape, dtype=bool)
-            for c in conditions
-        ]
-
-        group_arr = np.select(cond_arrs, choices, default=None)
-        group_df = pd.DataFrame(
-            group_arr, index=liters_1.index, columns=liters_1.columns
-        )
-
-        self.model_groups_daily = group_df
-        self.model_groups_daily_dict = self._model_groups_dict_from_df(group_df)
-        return self.model_groups_daily
-
-# groups_and_tests/model_groups.py
-
-    def create_model_groups_weekly(self):
-        liters_1   = self.liters
-        week_num_1 = self.weeknums
-        pregnant_1 = self.pregnant
-        period_1   = self.period
-
-        # Align all frames to liters_1 by reindexing
-        week_num_1 = week_num_1.reindex(index=liters_1.index, columns=liters_1.columns)
-        pregnant_1 = pregnant_1.reindex(index=liters_1.index, columns=liters_1.columns)
-        period_1   = period_1  .reindex(index=liters_1.index, columns=liters_1.columns)
-
-        # pull the letter off the period label
-        period_letter = period_1.apply(lambda col: col.str.extract(r'([A-Za-z]+)')[0])
-        is_heifer = period_letter == 'H'
-        is_dry    = period_letter == 'D'
-        is_preg = pregnant_1 == 'preg'
-        missing = (week_num_1.isna() | liters_1.isna()) & ~is_heifer & ~is_dry
-
-        conditions = [
-            is_heifer,
-            is_dry,
-            missing,
-            week_num_1 < 3,
-            (week_num_1 >= 3) & (liters_1 >= 15),
-            (week_num_1 >= 3) & (liters_1 > 0) & (liters_1 < 15) & ~is_preg,
-            (week_num_1 >= 3) & (liters_1 > 0) & (liters_1 < 15) &  is_preg,
-        ]
-        choices = ['H', 'D', 'G', 'F', 'A', 'B', 'C']
-
-        # convert to plain numpy bool arrays for np.select
-        cond_arrs = [
-            c.to_numpy(dtype=bool, na_value=False) if not c.empty
-            else np.zeros(liters_1.shape, dtype=bool)
-            for c in conditions
-        ]
-
-        group_arr = np.select(cond_arrs, choices, default=None)
-        group_df = pd.DataFrame(
-            group_arr, 
-            index=liters_1.index, 
-            columns=liters_1.columns
-        )
-
-        self.model_groups_weekly = group_df
-        self.model_groups_weekly_dict = self._model_groups_dict_from_df(group_df)        
-        return self.model_groups_weekly
-
-         
-    def create_model_groups_monthly(self):
-        liters_1   = self.liters
-        week_num_1 = self.weeknums
-        pregnant_1 = self.pregnant
-        period_1   = self.period
-
-        # Normalize any PeriodIndex axes to DatetimeIndex
-        for df in (liters_1, week_num_1, pregnant_1, period_1):
+    def create_model_groups(self):
+        weekly = self._classify()
+        for df in (weekly,):                      # PeriodIndex -> timestamps, as before
             if isinstance(df.index, pd.PeriodIndex):
                 df.index = df.index.to_timestamp()
-            if isinstance(df.columns, pd.PeriodIndex):
-                df.columns = df.columns.to_timestamp()
+        monthly = weekly.resample('ME').last()    # label of last non-null week in month
 
-        # Resample date rows to month-end (use 'ME' for pandas >= 2.2)
-        freq = 'ME'
-        liters_1   = liters_1.resample(freq).last()
-        week_num_1 = week_num_1.resample(freq).last()
-        pregnant_1 = pregnant_1.resample(freq).last()
-        period_1   = period_1.resample(freq).last()
+        self.model_groups_weekly  = weekly
+        self.model_groups_daily   = weekly        # same grid; drop if nothing reads it
+        self.model_groups_monthly = monthly
+        self.model_groups_weekly_dict  = self._model_groups_dict_from_df(weekly)
+        self.model_groups_daily_dict   = self.model_groups_weekly_dict
+        self.model_groups_monthly_dict = self._model_groups_dict_from_df(monthly)       
 
-        # Force everything to wy_id rows / date columns, matching liters_1
-        if isinstance(liters_1.index, pd.DatetimeIndex):
-            liters_1 = liters_1.T
 
-        if isinstance(week_num_1.index, pd.DatetimeIndex):
-            week_num_1 = week_num_1.T
-        if isinstance(pregnant_1.index, pd.DatetimeIndex):
-            pregnant_1 = pregnant_1.T
-        if isinstance(period_1.index, pd.DatetimeIndex):
-            period_1 = period_1.T
+    def _classify(self):
+        """Group label per cow-week: H heifer, D dry, G missing, F fresh (<3 wk),
+        A (>=15 L), C (<15 L, pregnant), B (<15 L, not pregnant).
+        Returns DataFrame (dates x cows, object)."""
+        liters = self.liters
+        ix = dict(index=liters.index, columns=liters.columns)   # 'index' is the weekly date index
+        wk     = self.weeknums.reindex(**ix).to_numpy(dtype=float)
+        L      = liters.to_numpy(dtype=float)
+        period = self.period.reindex(**ix).astype('string')
+        letter = period.apply(lambda c: c.str.extract(r'([A-Za-z]+)')[0])
 
-        # Align to liters_1
-        week_num_1 = week_num_1.reindex(index=liters_1.index, columns=liters_1.columns)
-        pregnant_1 = pregnant_1.reindex(index=liters_1.index, columns=liters_1.columns)
-        period_1   = period_1  .reindex(index=liters_1.index, columns=liters_1.columns)
+        def arr(c): return c.to_numpy(dtype=bool, na_value=False)
+        heifer = arr(letter == 'H')
+        dry    = arr(letter == 'D')
+        preg   = arr(self.pregnant.reindex(**ix) == 'preg')
+        missing = (np.isnan(wk) | np.isnan(L)) & ~heifer & ~dry
+        lact = wk >= 3
 
-        # Extract period letter safely
-        period_letter = period_1.astype('string').apply(
-            lambda col: col.str.extract(r'([A-Za-z]+)')[0]
-        )
-        is_heifer = period_letter == 'H'
-        is_dry    = period_letter == 'D'
-        is_preg   = pregnant_1 == 'preg'
-        missing   = (week_num_1.isna() | liters_1.isna()) & ~is_heifer & ~is_dry
+        out = np.select(
+            [heifer, dry, missing, wk < 3,
+            lact & (L >= 15),
+            lact & (L > 0) & (L < 15) & preg,
+            lact & (L > 0) & (L < 15) & ~preg],
+            ['H', 'D', 'G', 'F', 'A', 'C', 'B'], default=None)
+        return pd.DataFrame(out, dtype=object, **ix)
 
-        conditions = [
-            is_heifer,
-            is_dry,
-            missing,
-            week_num_1 < 3,
-            (week_num_1 >= 3) & (liters_1 >= 15),
-            (week_num_1 >= 3) & (liters_1 > 0) & (liters_1 < 15) & is_preg,
-            (week_num_1 >= 3) & (liters_1 > 0) & (liters_1 < 15) & ~is_preg,
-        ]
-        choices = ['H', 'D', None, 'F', 'A', 'C', 'B']
 
-        # Convert all conditions to plain numpy bool arrays
-        cond_arrs = [
-            c.to_numpy(dtype=bool, na_value=False) if not c.empty
-            else np.zeros(liters_1.shape, dtype=bool)
-            for c in conditions
-        ]
 
-        group_arr = np.select(cond_arrs, choices, default=None)
-        group_df = pd.DataFrame(
-            group_arr, index=liters_1.index, columns=liters_1.columns
-        ).T
 
-        self.model_groups_monthly = group_df
-        self.model_groups_monthly_dict = self._model_groups_dict_from_df(group_df)        
-        return self.model_groups_monthly,  self.model_groups_monthly_dict
-            
-    
     def _model_groups_dict_from_df(self, df):
-        """Generic: takes DataFrame index=dates, columns=cow_ids, values=labels.
-        Returns {group_key: {date_str: [cow_ids]}}"""
-        label_to_key = {
-            'H': 'heifer_ids',
-            'D': 'dry_ids',
-            'G': 'missing_ids',
-            'F': 'fresh_ids',
-            'A': 'group_A_ids',
-            'B': 'group_B_ids',
-            'C': 'group_C_ids',
-        }
+        """Invert a label grid into id lists per group and date.
 
-        result = {key: {} for key in label_to_key.values()}
+        df: index=dates, columns=cow ids, values=group labels (NaN/None skipped).
+        Returns {group_key: {'YYYY-MM-DD': [cow_id_str, ...]}}; every group key is
+        present, and unmapped labels are ignored.
+        """
+        long = (df.stack().dropna()
+                .rename_axis(['date', 'cow']).rename('label').reset_index())
+        long['key'] = long['label'].map(_LABEL_TO_KEY)
+        long = long.dropna(subset=['key'])
+        long['date'] = pd.to_datetime(long['date']).dt.strftime('%Y-%m-%d')
+        long['cow'] = long['cow'].astype(float).astype(int).astype(str)
 
-        for date in df.index:
-            date_str = pd.Timestamp(date).strftime('%Y-%m-%d')
-            for cow_id, label in df.loc[date].items():
-                if pd.isna(label):
-                    continue
-                key = label_to_key.get(label)
-                if key is not None:
-                    result[key].setdefault(date_str, []).append(
-                        str(int(float(cow_id)))
-                    )
+        result = {k: {} for k in _LABEL_TO_KEY.values()}
+        for (key, date), cows in long.groupby(['key', 'date'], sort=False)['cow']:
+            result[key][date] = cows.tolist()
+        return result
 
-        return result         
-    
+
+        
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/model_groups")
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -307,4 +173,5 @@ class ModelGroups:
 if __name__ == "__main__":
     obj = ModelGroups()
     obj.load()
+    obj.write_to_csv()
     

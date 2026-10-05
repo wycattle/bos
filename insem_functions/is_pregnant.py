@@ -107,42 +107,34 @@ class IsPregnant:
                                 values= 'ultra_date')
         self.ultra_pivot = ultra_5
         return self.ultra_4, self.ultra_pivot
-    
+        
     def create_preg_df_all_dates(self):
+        """Label each cow-day 'preg', 'not_preg' or None.
+
+        For a cow-day in lactation L: 'preg' if the last 'ok' ultrasound for L is
+        dated before lactation L's start date, else 'not_preg'. None if the day has
+        no lactation number, or the cow/lactation is missing from start_lact or
+        ultra_pivot. Returns DataFrame indexed by date, columns wy_id.
+        """
         dates = pd.date_range(self.startdate, self.lastday)
-        wyids = self.MB.data['wy_ids']
-        results = {}  # collect columns as series
-        
-        for i in wyids:
-            preg1 = {}
-            for date in dates:
-                wd_lact_num = self.wd_lact_num.loc[date, i]
-                
-                if pd.isna(wd_lact_num):
-                    preg1[date] = None
-                else:
-                    try:
-                        start_date_date = self.start_lact.loc[i, wd_lact_num]
-                    except KeyError:
-                        # print(f"Missing lact column for wy_id {i}: wd_lact_num = {wd_lact_num}")
-                        preg1[date] = None
-                        continue
-                    try:
-                        ultra_date = self.ultra_pivot.loc[i, wd_lact_num]
-                        if pd.notna(ultra_date) and ultra_date < start_date_date:
-                            preg1[date] = 'preg'
-                        else:
-                            preg1[date] = 'not_preg'
-                    except KeyError:
-                        preg1[date] = None
-            
-            results[i] = pd.Series(preg1)
-        
-        preg_df_1 = pd.DataFrame(results)
-        preg_df_1.index = pd.to_datetime(preg_df_1.index)
-        self.preg_df_daily = preg_df_1.loc[ self.startdate:,: ]
-        return self.preg_df_daily
-    
+        wyids = pd.Index(self.MB.data['wy_ids'])
+
+        lact = self.wd_lact_num.reindex(index=dates, columns=wyids).to_numpy(dtype=float)  # days x cows
+
+        start = self.start_lact.reindex(wyids)
+        ultra = self.ultra_pivot.reindex(wyids)
+        has_start = wyids.isin(self.start_lact.index)[None, :]
+        has_ultra = wyids.isin(self.ultra_pivot.index)[None, :]
+
+        out = np.full(lact.shape, None, dtype=object)
+        for L in start.columns.intersection(ultra.columns):
+            in_lact = (lact == L) & has_start & has_ultra        # NaN == L is False
+            is_preg = (ultra[L].notna() & (ultra[L] < start[L])).to_numpy()[None, :]
+            out[in_lact & is_preg] = 'preg'
+            out[in_lact & ~is_preg] = 'not_preg'
+
+        self.preg_df_daily = pd.DataFrame(out, index=dates, columns=wyids)
+        return self.preg_df_daily    
 
 
     def convert_preg_df_to_weekly(self, freq='W-SUN'):

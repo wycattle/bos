@@ -39,8 +39,7 @@ class Heifers:
 
         self.rng =  pd.date_range(start='2024-01-01', end=self.today, freq='D' )
             
-
-        # Methodseartag_id_list
+        # Methods
         self.heifers = self.create_heifer_df()
         self.heifer_days = self.create_heifer_days()
 
@@ -48,7 +47,6 @@ class Heifers:
          self.cost_milk] = self.calc_milkdrinking_days()
 
         self.calc_heifer_feed_days()
-
         self.align_days()
         
         
