@@ -10,7 +10,7 @@ class NetRevenueByCow:
         
     
     def load(self):
-        self.FC = get_dependency('feedcost_by_group_by_day')
+        self.FC = get_dependency('feedcost_weekly')
         self.Lact = get_dependency('lactations')
 
         self.process()

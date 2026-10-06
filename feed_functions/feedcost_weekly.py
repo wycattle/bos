@@ -13,15 +13,17 @@ WEEK = 'W'                                 # single weekly anchor; must match
 
 
 class FeedCostWeekly:
-    """Weekly feed cost per cow.
+    """Weekly and monthly feed cost per cow.
 
     Feed cost depends on the weekly model group, so cost is computed weekly:
 
         cost[week, cow] = rate[week, group(week, cow)] * days_present[week, cow]
 
     where ``rate`` is the weekly-mean feed cost per cow-day for that group.
-    There is no daily cost grid; the daily group view in ModelGroups is a
-    sanity check only.
+    Monthly cost is the weekly cost pro-rated by calendar day (each week's cost
+    is spread evenly over its 7 days), so a week straddling a month boundary is
+    split between the two months. There is no daily cost grid; the daily group
+    view in ModelGroups is a sanity check only.
 
     Dependencies
     ------------
@@ -41,9 +43,17 @@ class FeedCostWeekly:
         Feed cost per cow-week. NaN where the label has no rate (e.g. 'G').
     feedcost_weekly_total : Series, indexed by week
         Herd total per week.
-    unpriced : Series, indexed by week
-        Count of cows present that week with no cost. Should be 0 whenever
-        feed rates exist; non-zero flags 'G' labels or weeks missing rates.
+    missing_cost_grid : DataFrame of bool, weeks x cows
+        True where the cow was present but has no cost.
+    missing_cost : Series, indexed by week
+        Count of True cells per week. Should be 0 whenever feed rates exist;
+        non-zero flags 'G' labels or weeks missing rates.
+    month_weights : DataFrame, months x weeks
+        Fraction of each week's 7 days falling in each month (columns sum to 1).
+    feedcost_monthly : DataFrame, months x cows
+        Pro-rated monthly cost per cow (month-end index). NaN weeks count as 0.
+    feedcost_monthly_total : Series, indexed by month-end
+        Herd total per month.
     """
 
     def __init__(self):
@@ -59,7 +69,11 @@ class FeedCostWeekly:
         # methods
         self.feedcost_weekly = None
         self.feedcost_weekly_total = None
-        self.unpriced = None
+        self.missing_cost_grid = None
+        self.missing_cost = None
+        self.month_weights = None
+        self.feedcost_monthly = None
+        self.feedcost_monthly_total = None
 
     def load(self):
         """Fetch dependencies from the container, then run process()."""
@@ -69,16 +83,19 @@ class FeedCostWeekly:
         self.process()
 
     def process(self):
-        """Build rates, labels, days present, then cost and diagnostics."""
-        self.rate_weekly = self.create_rate_weekly()
-        self.groups = self._int_cols(self.MG.model_groups_weekly)
-        self.days_present = self.create_days_present()
-        self.feedcost_weekly = self.create_feedcost_weekly()
-        self.feedcost_weekly_total = self.feedcost_weekly.sum(axis=1)
-        self.unpriced = self.create_unpriced()
+        """Build rates, labels, days present, weekly cost, then monthly roll-up."""
+        self.rate_weekly            = self.create_rate_weekly()
+        self.groups                 = self._int_cols(self.MG.model_groups_weekly)
+        self.days_present           = self.create_days_present()
+        self.feedcost_weekly        = self.create_feedcost_weekly()
+        self.feedcost_weekly_total  = self.feedcost_weekly.sum(axis=1)
+        self.missing_cost_grid, self.missing_cost = self.create_missing_cost()
+        self.month_weights          = self.create_month_weights()
+        self.feedcost_monthly       = self.create_feedcost_monthly()
+        self.feedcost_monthly_total = self.feedcost_monthly.sum(axis=1)
 
     # ---- helpers ----
-    @staticmethod    #A static method does not receive an implicit first argumen
+    @staticmethod
     def _int_cols(df):
         """Return a copy with cow-id columns cast to int.
 
@@ -89,7 +106,7 @@ class FeedCostWeekly:
         df.columns = df.columns.astype(float).astype(int)
         return df
 
-    @staticmethod  
+    @staticmethod
     def _as_series(x):
         """Squeeze a one-column DataFrame (or Series) to a Series with a
         normalized DatetimeIndex. Works on a copy; the source is untouched."""
@@ -125,7 +142,7 @@ class FeedCostWeekly:
         present = (~status.isin(['nby', 'gone'])).resample(WEEK).sum()
         present = self._int_cols(present)
         return present.reindex(index=self.groups.index,
-                columns=self.groups.columns)
+                               columns=self.groups.columns)
 
     def create_feedcost_weekly(self):
         """Cost per cow-week: group rate for that week x days present.
@@ -145,21 +162,65 @@ class FeedCostWeekly:
             cost = cost.where(grp != g, r)
         return cost * self.days_present
 
-    def create_unpriced(self):
-        """Per week, number of cows present but with no cost (data-quality
-        check; see class docstring)."""
-        miss = self.feedcost_weekly.isna() & (self.days_present > 0)
-        return miss.sum(axis=1)
+    def create_missing_cost(self):
+        """Flag cow-weeks present but unpriced (e.g. 'G' labels).
+
+        Returns
+        -------
+        (DataFrame of bool, weeks x cows ; Series of counts per week)
+        """
+        grid = self.feedcost_weekly.isna() & (self.days_present > 0)
+        return grid, grid.sum(axis=1)
+
+    def create_month_weights(self):
+        """Fraction of each week's 7 calendar days falling in each month.
+
+        Each weekly cost is spread evenly over the 7 days ending on its
+        week-end date (WEEK anchor), so a week straddling a month boundary is
+        split.
+
+        Returns
+        -------
+        DataFrame, months x weeks (columns = positions in
+        ``feedcost_weekly.index``); each column sums to 1. Index = month-end.
+        """
+        ends = self.feedcost_weekly.index.to_numpy()
+        days = ends[:, None] - np.arange(6, -1, -1) * np.timedelta64(1, 'D')  # weeks x 7
+        months = pd.DatetimeIndex(days.ravel()).to_period('M')
+        wk_pos = np.repeat(np.arange(len(ends)), 7)
+        w = (pd.crosstab(months, wk_pos)
+               .reindex(columns=range(len(ends)), fill_value=0) / 7)
+        w.index = w.index.to_timestamp(how='end').normalize()
+        assert np.allclose(w.sum(axis=0), 1), "month_weights columns must sum to 1"
+        return w
+
+    def create_feedcost_monthly(self):
+        """Monthly feed cost per cow: pro-rated weekly cost summed by month.
+
+        NaN weeks count as 0 here; use ``missing_cost`` to see which weeks were
+        unpriced. The final month is partial if the last week ends after
+        lastday.
+
+        Returns
+        -------
+        DataFrame, months x cows (month-end index, same as ModelGroups monthly).
+        """
+        cost = self.feedcost_weekly.fillna(0.0)
+        m = self.month_weights.to_numpy() @ cost.to_numpy()
+        return pd.DataFrame(m, index=self.month_weights.index, columns=cost.columns)
 
     def write_to_csv(self):
         """Dump outputs for inspection. Called from __main__ only."""
         out = Path("/home/alanw/Documents/vsCode_output/feed")
         out.mkdir(parents=True, exist_ok=True)
-        
+
         self.rate_weekly            .to_csv(out / "rate_weekly.csv")
         self.feedcost_weekly        .to_csv(out / "feedcost_weekly.csv")
         self.feedcost_weekly_total  .to_csv(out / "feedcost_weekly_total.csv")
-        self.unpriced               .to_csv(out / "unpriced.csv")
+        self.missing_cost_grid      .to_csv(out / "missing_cost_grid.csv")
+        self.missing_cost           .to_csv(out / "missing_cost.csv")
+        self.feedcost_monthly       .to_csv(out / "feedcost_monthly.csv")
+        self.feedcost_monthly_total .to_csv(out / "feedcost_monthly_total.csv")
 
 
 if __name__ == "__main__":

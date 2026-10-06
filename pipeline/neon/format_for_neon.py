@@ -61,6 +61,8 @@ class FormatForNeon:
     # redefining apply/apply_indexed_date, or the same bug recurs.
     def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         out = df.copy()
+        if out.index.name in self.spec and out.index.name not in out.columns:
+            out = out.reset_index()   # e.g. index named 'datex'
         for idx, col in enumerate(out.columns):
             kind = self.spec.get(col) or self._kind_for_positional(idx)
             out[col] = self._coerce_column(out[col], kind)
@@ -116,6 +118,11 @@ class FormatForNeon:
 
     def _coerce_column(self, series: pd.Series, kind: str) -> pd.Series:
         if kind == "date":
+            if isinstance(series.dtype, pd.PeriodDtype):
+                series = series.dt.to_timestamp()
+            elif series.dtype == object:
+                series = series.map(
+                    lambda v: v.to_timestamp() if isinstance(v, pd.Period) else v)
             return pd.to_datetime(series, errors="coerce")
         elif kind == "int":
             return pd.to_numeric(series, errors="coerce").round(0).astype("Int64")

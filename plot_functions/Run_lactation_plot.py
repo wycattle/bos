@@ -51,9 +51,9 @@ class RunLactationPlot:
 
             fig, ax1 = plt.subplots(figsize=(14, 8))
             # Plot the average weekly line (blue)
-            ax1.plot(self.df_weekly.index, self.weekly_avg_all.values, '-', color='blue', label='weekly avg liters/day - all cows', alpha=.8)
+            ax1.plot(self.df_weekly.index, self.weekly_avg_all.values, '-', color='blue', label='weekly avg_liters/day - all cows', alpha=.8)
             # Plot the individual cow weekly (red)
-            ax1.plot(self.df_weekly.index, self.df_weekly[cow_id].values, 'o-', color='red', label=f'weekly avg liters/day - WY#{cow_id}')
+            ax1.plot(self.df_weekly.index, self.df_weekly[cow_id].values, 'o-', color='red', label=f'weekly avg_liters/day - WY#{cow_id}')
             ax1.set_xlabel('Weeks Milking')
             ax1.set_ylabel('Liters', color='blue')
             ax1.tick_params(axis='y', labelcolor='blue')
@@ -70,7 +70,7 @@ class RunLactationPlot:
                          marker='o',
                          markersize=1,
                          color='orange', 
-                         label=f'Cow wy_id {cow_id} (daily avg liters)', 
+                         label=f'Cow wy_id {cow_id} (daily avg_liters)', 
                          alpha=0.7)
                 ax2.set_xlabel('Days Milking')
                 ax2.set_xlim(self.df_daily.index.min(), self.df_daily.index.max())

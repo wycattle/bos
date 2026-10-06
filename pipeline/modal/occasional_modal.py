@@ -27,11 +27,16 @@ from pipeline.neon.neon_connect import get_engine
 class OccasionalModal:
 
     TABLE_NAMES = [
-        "next_ultra_check", "i_u_merge",
-        "allx", "ipiv_data",
-        "feed_cost_pivot", "cost_xfeed_pivot",
-        "ipiv_pivot_table", "net_revenue",
-        "daily_milk_vs_fullday", "daily_milk_vs_fullday"
+        "next_ultra_check", 
+        "i_u_merge",
+        "allx", 
+        "ipiv_data",
+        "feed_cost_pivot", 
+        "cost_xfeed_pivot",
+        "ipiv_pivot_table", 
+        "net_revenue",
+        "daily_milk_vs_fullday", 
+        "net_income"
     ]
 
     @classmethod
@@ -66,13 +71,13 @@ class OccasionalModal:
             "i_check": "int", "u_check1": "int", "u_check2": "int", "updated": "date",
         })
         self.ipiv_data_fmt = FormatForNeon(schema={
-            "wy_id": "int", "lact_num": "int", "try_num": "int", "insem_date": "datex",
+            "wy_id": "int", "lact_num": "int", "try_num": "int", "insem_date": "date",
         })
         self.feed_cost_pivot_fmt = FormatForNeon(schema={
-            "datex": "datex", "desc_2": "text", "value": "float",
+            "datex": "date", "desc_2": "text", "value": "float",
         })
         self.cost_xfeed_pivot_fmt = FormatForNeon(schema={
-            "datex": "datex", "desc_1": "text", "value": "float",
+            "datex": "date", "desc_1": "text", "value": "float",
         })
         self.ipiv_pivot_table_fmt = FormatForNeon(
             schema={"wy_id": "int", "lact_num": "int", "u_read": "text", "days_milking": "int"},
@@ -82,8 +87,15 @@ class OccasionalModal:
             schema={"datex": "date", "income": "float", "cost": "float", "net_revenue": "float"},
         )
         self.daily_milk_vs_fullday_fmt = FormatForNeon(schema={
-            "datex": "datex", "am_liters": "float", "pm_liters": "float", "total_liters": "float",
+            "datex": "date", "am_liters": "float", "pm_liters": "float", "total_liters": "float",
         })
+        self.net_income_table_fmt = FormatForNeon(schema={
+            "datex":"date","avg_liters":"float","income":"float","feed_cost":"float",
+            "net_revenue":"float","total_xfeed_cost":"float","net_income":"float",
+            "liters_shortfall":"float","liters_for_bkeven":"float"
+        }
+            
+        )
 
     def load_and_process(self):
         if "next_ultra_check" in self.targets:
@@ -102,6 +114,8 @@ class OccasionalModal:
             self.NR = get_dependency('net_revenue')
         if "daily_milk_vs_fullday" in self.targets:
             self.DMVF = get_dependency('daily_milk_vs_fullday')
+        if "net_income" in self.targets:
+            self.NI = get_dependency('net_income')
 
         self.createOccasionalData()
         self.write_to_neon(get_engine(branch=self.branch))
@@ -129,6 +143,8 @@ class OccasionalModal:
             self.net_revenue_table_formatted = nr.reset_index()
         if "daily_milk_vs_fullday" in self.targets:
             self.daily_milk_vs_fullday_formatted = self.DMVF.daily_milk_vs_fullday.copy()
+        if "net_income" in self.targets:
+            self.net_income_table_formatted = self.NI.net_income.copy()
 
     def write_to_neon(self, engine):
         with engine.begin() as conn:
@@ -153,3 +169,5 @@ class OccasionalModal:
                 self.net_revenue_table_fmt.write_conn(self.net_revenue_table_formatted, 'net_revenue_table_formatted', conn, pk_col='datex')
             if "daily_milk_vs_fullday" in self.targets:
                 self.daily_milk_vs_fullday_fmt.write_conn(self.daily_milk_vs_fullday_formatted, 'daily_milk_vs_fullday_formatted', conn, pk_col='datex')
+            if "net_income" in self.targets:
+                self.net_income_table_fmt.write_conn(self.net_income_table_formatted, 'net_income_table_formatted', conn, pk_col='datex')                

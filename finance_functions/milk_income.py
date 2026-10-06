@@ -62,7 +62,7 @@ class MilkIncome:
         avg_liters    = self.milk_monthly_avg
         
 
-        self.income_monthly = pd.concat([income.rename('income'), avg_liters.rename('avg liters')], axis=1)
+        self.income_monthly = pd.concat([income.rename('income'), avg_liters.rename('avg_liters')], axis=1)
         return self.income_monthly
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ bos_backend.egg-info/requires.txt
 bos_backend.egg-info/top_level.txt
 feed_functions/__init__.py
 feed_functions/feedcost_basics.py
-feed_functions/feedcost_by_group_by_day.py
+feed_functions/feedcost_weekly.py
 feed_functions/feedcost_data_loader.py
 feed_functions/nutrition_cows.py
 feed_functions/heifers/__init__.py

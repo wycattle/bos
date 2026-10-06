@@ -1,4 +1,4 @@
-"""feed_functions\\feedcost_by_group_by_day.py"""
+"""feed_functions\\feedcost_weekly.py"""
 
 import inspect
 import pandas as pd
@@ -26,8 +26,8 @@ class FeedCostByGroupByDay:
         self.cost_c = None
         self.cost_d = None
         self.cost_h = None
-        self.feedfeedcost_by_group_by_day_df = None
-        self.feedcost_by_group_by_week_df = None
+        self.feedfeedcost_weekly = None
+        self.feedcost_weekly = None
         
     def load(self):
         self.MB = get_dependency('milk_basics')
@@ -52,14 +52,14 @@ class FeedCostByGroupByDay:
         self.cost_h = self.FB.feedcost_H_df
 
      #methods
-        self.feedfeedcost_by_group_by_day_df    = self.create_feedcost_by_group_by_day()
-        self.feedcost_by_group_by_week_df   = self.create_feedcost_by_group_by_week()
+        self.feedfeedcost_weekly    = self.create_feedcost_weekly()
+        self.feedcost_weekly   = self.create_feedcost_by_group_by_week()
         
         [self.feedcost_by_group_by_month_by_cow, 
         self.total_feedcost_by_cow]         = self.create_feedcost_by_group_by_month()
         
             
-    def create_feedcost_by_group_by_day(self):
+    def create_feedcost_weekly(self):
         
         groups = self.groups_daily.copy()
 
@@ -108,8 +108,8 @@ class FeedCostByGroupByDay:
 
 
         cost_by_group_df = merged.pivot(index='date', columns='wy_id', values='cost')
-        self.feedcost_by_group_by_day_df = cost_by_group_df
-        return self.feedcost_by_group_by_day_df
+        self.feedcost_weekly = cost_by_group_df
+        return self.feedcost_weekly
         
         
     def create_feedcost_by_group_by_week(self):
@@ -146,8 +146,8 @@ class FeedCostByGroupByDay:
         # returns weekly feedcost total of each cow (from start date) 
 
         cost_by_group_by_week_df = merged.pivot(index='date', columns='wy_id', values='cost')
-        self.feedcost_by_group_by_week_df = cost_by_group_by_week_df
-        return self.feedcost_by_group_by_week_df
+        self.feedcost_weekly = cost_by_group_by_week_df
+        return self.feedcost_weekly
 
             
     def create_feedcost_by_group_by_month(self):
@@ -195,7 +195,7 @@ class FeedCostByGroupByDay:
         output_dir = Path("/home/alanw/Documents/vsCode_output/feed")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        self.feedcost_by_group_by_day_df.to_csv( output_dir / "feedcost_by_group_by_day_df.csv")
+        self.feedcost_weekly.to_csv( output_dir / "feedcost_weekly.csv")
         self.feedcost_by_group_by_month_by_cow.to_csv(output_dir / "feedcost_by_group_by_month_by_cow.csv") 
         self.total_feedcost_by_cow.to_csv(output_dir / "self.total_feedcost_by_cow.csv")  
     

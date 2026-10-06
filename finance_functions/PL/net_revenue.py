@@ -13,8 +13,8 @@ class NetRevenue:
         self.MI = None
         self.FCBD = None        
         self.startdate = None        
-        self.feedcost_by_group_by_week_df = None
-        self.feedcost_by_group_by_month_df  = None
+        self.feedcost_weekly = None
+        self.feedcost_monthly  = None
         self.income_weekly = None
         self.income_monthly = None
         self.net_revenue_weekly  = None
@@ -25,7 +25,7 @@ class NetRevenue:
     def load(self):
         self.DR   = get_dependency('date_range')
         self.MI   = get_dependency('milk_income')
-        self.FCBD = get_dependency('feedcost_by_group_by_day')
+        self.FCBD = get_dependency('feedcost_weekly')
         self.FB   = get_dependency('finance_basics')
         self.MA   = get_dependency('milk_aggregates')
         
@@ -33,12 +33,11 @@ class NetRevenue:
 
     def process(self):
         self.startdate  = self.DR.startdate    
-        self.feedcost_by_group_by_day_df    = self.FCBD.feedcost_by_group_by_day_df
-        self.feedcost_by_group_by_week_df   = self.FCBD.feedcost_by_group_by_week_df
-        self.feedcost_by_group_by_month_df  = self.FCBD.feedcost_by_group_by_month_by_cow
+        self.feedcost_weekly    = self.FCBD.feedcost_weekly
+        self.feedcost_monthly  = self.FCBD.feedcost_monthly
         
         
-        self.milk_monthly_avg =  pd.DataFrame(self.MA.monthly_avg, columns=['MA avg liters'])
+        self.milk_monthly_avg =  pd.DataFrame(self.MA.monthly_avg, columns=['MA avg_liters'])
         self.income_daily    = self.MI.income_daily.copy()
         self.income_weekly   = self.MI.income_weekly.copy()
         self.income_monthly  = self.MI.income_monthly.copy()
@@ -49,19 +48,16 @@ class NetRevenue:
 
               
             
-        #methhods
+        #methods
         self.net_revenue_daily      = self.create_net_revenue_daily()
         self.net_revenue_weekly     = self.create_net_revenue_weekly()
         self.net_revenue_monthly    = self.create_net_revenue_monthly()
-        self.write_to_csv()
+
         
         
     def create_net_revenue_daily(self):
-        income1 = self.income_daily
-        # merge income1 and milk_monthly_avg on period index
-       
-        
-        cost1 = self.feedcost_by_group_by_day_df
+        income1 = self.income_weekly
+        cost1 = self.feedcost_weekly
 
         # explicit alignment guard, same reasoning as model_groups.py:
         # equal shape doesn't guarantee equal index/columns
@@ -77,7 +73,7 @@ class NetRevenue:
     
     def create_net_revenue_weekly(self):
         income1 = self.income_weekly
-        cost1 = self.feedcost_by_group_by_week_df
+        cost1   = self.feedcost_weekly
 
         # explicit alignment guard, same reasoning as model_groups.py:
         # equal shape doesn't guarantee equal index/columns
@@ -113,7 +109,7 @@ class NetRevenue:
         
         
         
-        cost1   = pd.DataFrame(self.feedcost_by_group_by_month_df.sum(axis=1).rename('cost'))
+        cost1   = pd.DataFrame(self.feedcost_monthly.sum(axis=1).rename('cost'))
         
         # format as monthly period: 2025-06 instead of 2025-06-30
         # this eliminates the prob of one df being 2026-06-01 and the other 2026-06-31
@@ -126,7 +122,7 @@ class NetRevenue:
 
         net_revenue = income_1['income'] - (cost_1['cost']) 
         self.net_revenue_monthly = pd.DataFrame({
-            'avg liters':  income_1['avg liters'],
+            'avg_liters':  income_1['avg_liters'],
             'income':      income_1['income'],
             'cost':        cost_1['cost'],
             'net_revenue': net_revenue            
@@ -136,8 +132,11 @@ class NetRevenue:
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/finance")
         output_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.net_revenue_weekly .to_csv(output_dir / "net_revenue_weekly.csv")
         self.net_revenue_monthly.to_csv(output_dir / "net_revenue_monthly.csv")
  
 if __name__ == "__main__":
     obj=NetRevenue()            
-    obj.load()     
+    obj.load()
+    obj.write_to_csv() 

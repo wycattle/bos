@@ -29,10 +29,8 @@ class NetIncome():
             
         self.non_feed_cost_df = self.FB.non_feed_cost_df
             
-        
         #methods
         self.net_income = self.create_net_income()
-        self.write_to_csv()
         
     def create_net_income(self):
         
@@ -43,11 +41,13 @@ class NetIncome():
         cost = cost.reset_index()
                  
         nr2 = pd.merge(nr, cost, how='outer', on='datex')
-        nr2['net income'] = nr2['net_revenue'] - nr2['total xfeed cost']
-        nr2 = nr2.rename(columns={'cost': 'feed cost'})
+        nr2['net_income'] = nr2['net_revenue'] - nr2['total_xfeed_cost']
+        nr2 = nr2.rename(columns={'cost': 'feed_cost'})
         
-        nr2['liters shortfall'] = (nr2['net income'] / 22)/30
-        nr2['liters for bkeven'] = -nr2['liters shortfall'] + nr2['avg liters']
+        nr2['liters_shortfall'] = (nr2['net_income'] / 22)/30
+        nr2['liters_for_bkeven'] = -nr2['liters_shortfall'] + nr2['avg_liters']
+        nr2['datex'] = pd.PeriodIndex(nr2['datex'], freq='M').to_timestamp()
+        nr2 = nr2.sort_values('datex').reset_index(drop=True)
         
         self.net_income = nr2
         
@@ -57,9 +57,11 @@ class NetIncome():
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/finance")
         output_dir.mkdir(parents=True, exist_ok=True)
+        
         self.net_income.to_csv(output_dir / "net_income.csv")   
         
         
 if __name__ == "__main__":
     obj= NetIncome()
     obj.load()
+    obj.write_to_csv()

@@ -123,7 +123,7 @@ class FinanceBasics:
         df3.index = df3.index.date
         
         df4 = df3.sum(axis=1)
-        self.total_cost_xfeed = pd.DataFrame(df4, columns=['total xfeed cost'])
+        self.total_cost_xfeed = pd.DataFrame(df4, columns=['total_xfeed_cost'])
         
         
         self.cost_xfeed_pivot_long = df2       
