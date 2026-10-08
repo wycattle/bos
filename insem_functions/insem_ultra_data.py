@@ -9,35 +9,7 @@ from container import get_dependency
 class InsemUltraData:
     def __init__(self):
         print(f"InsemUltraData instantiated by: {inspect.stack()[1].filename}")
-        self.DR = None
-        self.MB = None
 
-        self.IUB = None
-        self.SD = None
-        
-        #process
-        self.data = None
-        self.status_col = None
-        self.alive_mask = None
-        self.date_format = '%m/%d/%Y'
-        self.today = None
-        
-        #methods
-        self.last_insem = None
-        self.last_valid_insem = None
-        self.last_invalid_insem = None
-        self.last_ultra = None
-        self.last_valid_ultra = None
-        self.last_invalid_ultra = None
-        self.df7 = None
-        self.allx = None
-        self.all_milking = None
-        self.all_dry = None
-        self.all_preg = None
-        self.all_not_preg = None
-        self.days_milking = None
-        self.not_preg = None
-        self.no_insem = None
 
     def load(self):
         # client = ContainerClient()
@@ -231,13 +203,15 @@ class InsemUltraData:
 
         df6 = df5[(df5['status'].notna()) & (df5['status'] != 'gone')].copy()
         df6['exp_drydate'] = df6['expected_bdate'] - timedelta(days=61)
-        self.df7 = df6
-        return self.df7
-
+        
+        alive_ids = self.data['bd'].loc[self.alive_mask, 'wy_id']
+        df7 = df6[df6['wy_id'].isin(alive_ids)].copy()
+        df7 = df7.drop(columns='wy_id_x').reset_index(drop=True)
+        self.df8 = df7
     
     def create_allx(self):
         
-        self.allx = self.df7[
+        self.allx = self.df8[
             [
             'wy_id',
             'status',

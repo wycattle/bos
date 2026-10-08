@@ -17,37 +17,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 class MilkAggregates:
 
-    print(f"MilkAggregates instantiated by: {inspect.stack()[1].filename}")
-
     def __init__(self):
-        self.MAB = None
-        self.MB = None
-        self.data = None
-        self.DR = None
-        self.IUB = None
-        self.IUD = None
-        self.allx = None
-        self.am = None
-        self.pm = None
-        self.fullday = None
-        self.fullday_lastdate = None
-        self.datex = None
-        self.AM_liters = None
-        self.PM_liters = None
-        self.halfday = None
-        self.tenday = None
-        self.tenday1 = None
-        self.milk = None
-        self.monthly_summary = None
-        self.monthly_avg = None
-        self.monthly_total = None
-        self.monthly_avg = None
-        self.weekly_avg = None
-        self.weekly_total = None
-        self.weekly_average_date = None
-        self.start = None
-
-
+        print(f"MilkAggregates instantiated by: {inspect.stack()[1].filename}")
+        
     def load(self):
         self.MAB  = get_dependency('milk_aggregates_basic')
         self.MB   = get_dependency('milk_basics')
@@ -60,6 +32,7 @@ class MilkAggregates:
         
     def process(self):
         self.allx = self.IUD.allx
+        
         # Pull computed results from MAB
         self.am               = self.MAB.am
         self.pm               = self.MAB.pm
@@ -134,9 +107,9 @@ class MilkAggregates:
         
         self.milk_sum = self.milk.sum(axis=1) # series with only the sum of the cols
         
-        self.monthly_total_by_cow    = self.milk.resample('MS').mean()  # all the cows
-        self.monthly_total  = self.milk_sum.resample('MS').sum()    # just the sum
-        self.monthly_avg    = self.milk_sum.resample('MS').mean() 
+        self.monthly_total_by_cow    = self.milk.resample('ME').mean()  # all the cows
+        self.monthly_total  = self.milk_sum.resample('ME').sum()    # just the sum
+        self.monthly_avg    = self.milk_sum.resample('ME').mean() 
         
         self.weekly_avg     = self.milk.resample('W').mean()
         self.weekly_total   = self.milk.resample('W').sum()

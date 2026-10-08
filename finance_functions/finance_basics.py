@@ -12,21 +12,13 @@ from feed_functions.feedcost_basics import FeedcostBasics
 class FinanceBasics:
     def __init__(self, feedcost_basics=None):
         print(f"FinanceBasics instantiated by: {inspect.stack()[1].filename}")
-        self.fc = feedcost_basics or FeedcostBasics()
-        self.bkk1 = None
-        self.startdate = None
-        self.stopdate = None
-        self.idx = None
-        self.feed_cost_pivot = None
-        self.cost_xfeed_pivot_long = None
-        self.feedcost_pivot = None
-        self.engine = get_engine()
+    
 
     def load_and_process(self):
+
+        self.startdate = pd.Timestamp('2025-10-01')
         
-        DR = get_dependency('date_range')
-        self.startdate = DR.startdate
-        
+        self.engine = get_engine()            
         with self.engine.connect() as conn:
                     bkk = read_sql_table_traced('bkk_bank', conn)
         bkk = bkk.drop(columns=['id'])

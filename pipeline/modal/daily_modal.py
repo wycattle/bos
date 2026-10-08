@@ -39,7 +39,7 @@ class DailyModal:
         self.fullday = None
         self.WB_groups_tenday = None
         self.groups = None
-        self.lactation_totals = None
+        self.lactation_totals_live = None
         self.fullday_stats = None
 
         self.tenday_formatted = None
@@ -47,7 +47,7 @@ class DailyModal:
         self.fullday_formatted = None
         self.WB_groups_formatted = None
         self.max_days_per_period_formatted = None
-        self.lactation_totals_formatted = None
+        self.lactation_totals_live_formatted = None
         self.fullday_stats_formatted = None
 
 
@@ -107,7 +107,7 @@ class DailyModal:
                 }
             )
                 
-        self.lactation_totals_fmt = FormatForNeon(
+        self.lactation_totals_live_fmt = FormatForNeon(
             schema={
                 "wy_id"     : "int",
                 "l1_liters" : "float",
@@ -144,7 +144,7 @@ class DailyModal:
         (self.tenday_formatted, self.halfday_formatted,
          self.fullday_formatted, self.WB_groups_formatted, 
          self.max_days_per_period_formatted,
-         self.lactation_totals_formatted,
+         self.lactation_totals_live_formatted,
          self.fullday_stats_formatted )            = self.createDailyData()
 
         from   pipeline.neon.neon_connect import get_engine, read_sql_table_traced
@@ -170,8 +170,8 @@ class DailyModal:
             self.max_days_per_period_fmt.write_conn(
                 self.max_days_per_period_formatted, 'max_days_per_period_formatted', conn, pk_col='wy_id')
             
-            self.lactation_totals_fmt.write_conn(
-                self.lactation_totals_formatted, 'lactation_totals_formatted', conn, pk_col='wy_id')
+            self.lactation_totals_live_fmt.write_conn(
+                self.lactation_totals_live_formatted, 'lactation_totals_live_formatted', conn, pk_col='wy_id')
             
             self.fullday_stats_fmt.write_conn(
                 self.fullday_stats_formatted, 'fullday_stats_formatted', conn, pk_col='wy_id'
@@ -190,13 +190,13 @@ class DailyModal:
 
         self.WB_groups_tenday    = self.WG.whiteboard_groups_tenday.copy()
         self.max_days_per_period = self.WD.max_days_per_period.copy()
-        self.lactation_totals    = self.L.lactation_totals.copy()
+        self.lactation_totals_live    = self.L.lactation_totals_live.copy()
         self.fullday_stats       = self.MAB.fullday_stats.copy() 
         
 
         return [self.tenday, self.halfday, self.fullday, 
                 self.WB_groups_tenday, self.max_days_per_period,
-                self.lactation_totals, self.fullday_stats 
+                self.lactation_totals_live, self.fullday_stats 
                 ]
 
 

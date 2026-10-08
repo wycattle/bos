@@ -61,7 +61,8 @@ class Lactations:
         self.live_L4_weekly_sum, self.live_L5_weekly_sum, self.live_L6_weekly_sum
         ) =     self.create_live_lactations_weekly()
         
-        self.lactation_totals             = self.create_lactation_totals()
+        [self.lactation_totals_all, 
+        self.lactation_totals_live]          = self.create_lactation_totals()
         
         self.milking, self.milking_weekly = self.create_milking()
         self.write_to_csv()
@@ -159,23 +160,32 @@ class Lactations:
         return weekly_avg, weekly_sum
         
     def create_lactation_totals(self):
-        cols = [str(c) for c in self.alive_ids]
+        # all cows
+        cols_all = [str(c) for c in self.all_ids]
 
-        total_liters = pd.DataFrame({
+        all_totals = pd.DataFrame({
             "L1_liters": self.L1_total_liters,
             "L2_liters": self.L2_total_liters,
             "L3_liters": self.L3_total_liters,
             "L4_liters": self.L4_total_liters,
             "L5_liters": self.L5_total_liters,
             "L6_liters": self.L6_total_liters,
-        }).reindex(cols)
-        total_liters['total_liters'] = total_liters.sum(axis=1)
-        total_liters.index.name = 'wy_id'
-        total_liters = total_liters.reset_index()
+        }).reindex(cols_all)
+        all_totals['total_liters'] = all_totals.sum(axis=1)
+        all_totals.index.name = 'wy_id'
+        all_totals = all_totals.reset_index()
 
-        self.lactation_totals = total_liters
-        return self.lactation_totals
-            
+        # live slice (no recompute — just filter)
+        cols_live = [str(c) for c in self.alive_ids]
+        live_totals = (
+            all_totals.set_index('wy_id')
+                      .reindex(cols_live)
+                      .reset_index()
+        )
+
+        self.lactation_totals_all  = all_totals
+        self.lactation_totals_live = live_totals  
+        return self.lactation_totals_all, self.lactation_totals_live
 
     def create_milking(self):
         """Build a DataFrame of each cow's current ongoing lactation."""
@@ -213,8 +223,8 @@ class Lactations:
         output_dir = Path("/home/alanw/Documents/vsCode_output/milk/lactations")
         output_dir.mkdir(parents=True, exist_ok=True)
         self.live_L1_weekly_sum.to_csv(output_dir / "self.live_L1_weekly_sum.csv")
-        self.lactation_totals.to_csv(output_dir / "lactation_totals.csv")
-
+        self.lactation_totals_all.to_csv(output_dir / "lactation_totals_all.csv")
+        self.lactation_totals_live.to_csv(output_dir / "lactation_totals_live.csv")
 
 
 if __name__ == "__main__":

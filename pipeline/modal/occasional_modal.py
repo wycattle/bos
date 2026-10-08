@@ -36,7 +36,8 @@ class OccasionalModal:
         "ipiv_pivot_table", 
         "net_revenue",
         "daily_milk_vs_fullday", 
-        "net_income"
+        "net_income",
+        "net_revenue_sum"
     ]
 
     @classmethod
@@ -93,9 +94,13 @@ class OccasionalModal:
             "datex":"date","avg_liters":"float","income":"float","feed_cost":"float",
             "net_revenue":"float","total_xfeed_cost":"float","net_income":"float",
             "liters_shortfall":"float","liters_for_bkeven":"float"
-        }
-            
+        })
+        self.net_revenue_sum_table_fmt = FormatForNeon(schema={
+            "wy_id":"int","net_revenue":"float","status":"text","lact_num_x":"int",
+            "price":"float","adj_net_rev":"float","lact_num_y":"int"}
         )
+        
+        
 
     def load_and_process(self):
         if "next_ultra_check" in self.targets:
@@ -116,6 +121,8 @@ class OccasionalModal:
             self.DMVF = get_dependency('daily_milk_vs_fullday')
         if "net_income" in self.targets:
             self.NI = get_dependency('net_income')
+        if "net_revenue_sum" in self.targets:
+            self.NRS = get_dependency('net_revenue')
 
         self.createOccasionalData()
         self.write_to_neon(get_engine(branch=self.branch))
@@ -145,6 +152,8 @@ class OccasionalModal:
             self.daily_milk_vs_fullday_formatted = self.DMVF.daily_milk_vs_fullday.copy()
         if "net_income" in self.targets:
             self.net_income_table_formatted = self.NI.net_income.copy()
+        if "net_revenue_sum" in self.targets:
+            self.net_revenue_sum_table_formatted = self.NRS.net_revenue_sum.copy()
 
     def write_to_neon(self, engine):
         with engine.begin() as conn:
@@ -170,4 +179,6 @@ class OccasionalModal:
             if "daily_milk_vs_fullday" in self.targets:
                 self.daily_milk_vs_fullday_fmt.write_conn(self.daily_milk_vs_fullday_formatted, 'daily_milk_vs_fullday_formatted', conn, pk_col='datex')
             if "net_income" in self.targets:
-                self.net_income_table_fmt.write_conn(self.net_income_table_formatted, 'net_income_table_formatted', conn, pk_col='datex')                
+                self.net_income_table_fmt.write_conn(self.net_income_table_formatted, 'net_income_table_formatted', conn, pk_col='datex')
+            if "net_revenue_sum" in self.targets:
+                self.net_revenue_sum_table_fmt.write_conn(self.net_revenue_sum_table_formatted, 'net_revenue_sum_table_formatted', conn, pk_col='wy_id')                

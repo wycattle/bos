@@ -16,26 +16,18 @@ class NetRevenueByCow:
         self.process()
              
     def process(self):
-        self.total_feedcost_by_cow = self.FC.total_feedcost_by_cow   
-        self.lactation_totals = self.Lact.lactation_totals        
+        self.total_feedcost_by_cow = self.FC.feedcost_weekly  #all cows 
+        self.lactation_totals_all = self.Lact.lactation_totals_all        
 
-        # DEBUG
-        # print('lactation_totals:', type(self.lactation_totals), self.lactation_totals.shape)
-        # print(self.lactation_totals.head())
-        # print('feedcost:', type(self.total_feedcost_by_cow), self.total_feedcost_by_cow.shape)
-        # print(self.total_feedcost_by_cow.head())
-
-
-              
         #methods
         self.net_revenue_by_cow  =  self.create_net_revenue_by_cow()
         self.write_to_csv()
 
         
     def create_net_revenue_by_cow(self):
-        income = (self.lactation_totals['sum'] * 22).to_frame('income')
+        income = (self.lactation_totals_all['total_liters'] * 22).to_frame('income')
         income.index = income.index.astype(str) 
-        feedcost = (self.total_feedcost_by_cow).to_frame('feedcost')
+        feedcost = (self.total_feedcost_by_cow)
         feedcost.index = feedcost.index.astype(str)
         nr1 = pd.merge(feedcost, income, left_index=True, right_index=True)
         nr1['net revenue'] = nr1['income'] - nr1['feedcost']

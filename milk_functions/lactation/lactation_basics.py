@@ -8,12 +8,7 @@ class LactationBasics:
 
     def __init__(self):
         print(f"LactationBasics instantiated by: {inspect.stack()[1].filename}") 
-        self.MB = None
-        self.MAB = None
-        self.lactations_array = None
-        self.headers = None
-        self.lacts_str = None
-        self.ongoing_lactations = None
+
 
     def load(self):
         self.MB  = get_dependency('milk_basics')
@@ -21,8 +16,13 @@ class LactationBasics:
         self.process()
         
     def process(self):
-        self.lactations_array, self.headers = self.create_lactation_basics()
-        self.create_ongoing_lactations()
+        [self.lactations_array, 
+         self.headers] = self.create_lactation_basics()
+        
+        [self.ongoing_lactations, 
+         self.last_lactations] = self.create_ongoing_lactations()
+        
+        
 
     def create_lactation_basics(self):
         ''' creates lactations from 2016-09-01'''
@@ -121,23 +121,47 @@ class LactationBasics:
         return self.lactations_array, self.headers
 
     def create_ongoing_lactations(self):
-        """For each WY id, find the lactation number with a start date but no stop date."""
+        """For each WY id find:
+           - ongoing: start date set, stop date missing (cow still milking)
+           - last:    highest lactation number with any valid start date
+        """
         start_pivot = self.MB.data['start_pivot']
-        stop_pivot = self.MB.data['stop_pivot']
+        stop_pivot  = self.MB.data['stop_pivot']
 
-        ongoing = {}
+        # Sort the column labels once, so we always walk 1 -> 6
+        try:
+            lact_cols = sorted(start_pivot.columns)
+        except TypeError:
+            lact_cols = list(start_pivot.columns)
+
+        ongoing, last = {}, {}
+
         for wy in start_pivot.index:
             current = None
-            for lact in start_pivot.columns:
-                if lact in stop_pivot.columns:
-                    start = start_pivot.loc[wy, lact]
-                    stop = stop_pivot.loc[wy, lact]
-                    if pd.notna(start) and pd.isna(stop):
-                        current = lact
-                        break
+            latest  = None
+
+            for lact in lact_cols:
+                start = (start_pivot.loc[wy, lact]
+                         if lact in start_pivot.columns else pd.NaT)
+                if pd.isna(start):
+                    continue
+
+                latest = lact                     # keep overwriting -> ends as max
+
+                stop = (stop_pivot.loc[wy, lact]
+                        if lact in stop_pivot.columns else pd.NaT)
+                if pd.isna(stop):
+                    current = lact                # still open -> ongoing
+
             ongoing[wy] = current
+            last[wy]    = latest
 
         self.ongoing_lactations = pd.Series(ongoing, dtype='object')
+        self.last_lactations    = pd.Series(last,    dtype='object')
+        
+        return self.ongoing_lactations, self.last_lactations
+        
+        
 
 if __name__ == "__main__":
     obj = LactationBasics()

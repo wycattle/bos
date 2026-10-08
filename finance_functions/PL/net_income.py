@@ -8,7 +8,6 @@ from   pipeline.neon.neon_connect import get_engine, read_sql_table_traced
 class NetIncome():
     def __init__(self):
         print(f"NetIncome instantiated by: {inspect.stack()[1].filename}")
-        self.engine = get_engine()
         
     def load(self):
   
@@ -24,7 +23,9 @@ class NetIncome():
         self.total_cost_xfeed.index = pd.to_datetime(self.total_cost_xfeed.index).to_period('M')
         self.total_cost_xfeed.index.name = 'datex'
 
-        with self.engine.connect() as conn:
+        engine = get_engine()
+
+        with engine.connect() as conn:
             self.cost_xfeed_pivot= read_sql_table_traced('cost_x_feed_formatted', conn)
             
         self.non_feed_cost_df = self.FB.non_feed_cost_df
