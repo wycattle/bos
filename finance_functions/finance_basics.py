@@ -16,7 +16,9 @@ class FinanceBasics:
 
     def load_and_process(self):
 
-        self.startdate = pd.Timestamp('2025-10-01')
+
+        #startdate is one year ago
+        self.startdate = (pd.Timestamp('now') - pd.DateOffset(years=1)).normalize()
         
         self.engine = get_engine()            
         with self.engine.connect() as conn:
@@ -142,12 +144,18 @@ class FinanceBasics:
         
     def write_to_csv(self):
         
-        output_dir = Path("/home/alanw/Documents/vsCode_output")
+        output_dir = Path("/home/alanw/Documents/vsCode_output/feed")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        self.feed_cost_df.to_csv(output_dir / "feed_cost_df.csv")
-        self.non_feed_cost_df.to_csv(output_dir / 'non_feed_cost_df.csv')   
-        self.nonfarm_df.to_csv  (output_dir / "self.nonfarm_df.csv")
+        self.feed_cost_df       .to_csv(output_dir / "feed_cost_df.csv")
+        
+        
+        
+        output_dir = Path("/home/alanw/Documents/vsCode_output/finance")
+        output_dir.mkdir(parents=True, exist_ok=True)
+                
+        self.non_feed_cost_df   .to_csv(output_dir / 'non_feed_cost_df.csv')   
+        self.nonfarm_df         .to_csv(output_dir / "nonfarm_df.csv")
         
         
         

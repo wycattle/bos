@@ -25,15 +25,16 @@ class NetRevenue:
         self.feedcost_weekly    = self.FCBD.feedcost_weekly
         self.feedcost_monthly  = self.FCBD.feedcost_monthly
         
+        #startdate is one year ago
+        self.startdate = (pd.Timestamp('now') - pd.DateOffset(years=1)).normalize()        
+        
+        
         self.birth_death = self.MB.data['bd'].copy()
         df = self.LB.last_lactations.to_frame(name='lact_num')
         df.index.name = 'wy_id'
         df = df.reset_index()          # columns: ['wy_id', 'lact_num']
         df['wy_id'] = df['wy_id'].astype(str)   # <-- match allx_cols dtype
         self.last_lact_num = df
-        
-
-
         
         self.income_weekly  = self.MI.income_weekly.copy()
         self.income_monthly  = self.MI.income_monthly.copy()
@@ -80,27 +81,27 @@ class NetRevenue:
         income1 = self.income_weekly.copy()
         cost1   = self.feedcost_weekly.copy()
 
-        # merge on index (inner) instead of align
-        merged = income1.merge(
-            cost1,
-            left_index=True,
-            right_index=True,
-            how='left',
-            suffixes=('_income', '_cost')
-        )
+        # slice to startdate
+        income1 = income1.loc[income1.index >= self.startdate, :]
+        cost1   = cost1.loc[cost1.index >= self.startdate, :]
 
-        income_cols = [c for c in merged.columns if c.endswith('_income')]
-        cost_cols   = [c for c in merged.columns if c.endswith('_cost')]
+        # income_weekly is a single aggregated column; feedcost_weekly is one column per wy_id
+        income_series = income1.iloc[:, 0].rename('__income__')
 
+        merged = cost1.join(income_series, how='left')
+
+        cost_cols  = list(cost1.columns)
         net_revenue = (
-            merged[income_cols].to_numpy() - merged[cost_cols].to_numpy()
+            merged['__income__'].to_numpy()[:, None]
+            - merged[cost_cols].to_numpy()
         )
+
         self.net_revenue_weekly = pd.DataFrame(
             net_revenue,
             index=merged.index,
-            columns=[c.replace('_income', '') for c in income_cols]
+            columns=cost_cols
         )
-            
+
         return self.net_revenue_weekly
 
 
@@ -109,6 +110,7 @@ class NetRevenue:
         nr2 = nr1.sum(axis=0)
         nr3 = nr2.to_frame(name='net_revenue')
         nr3.index.name = 'wy_id'
+        nr3.index = nr3.index.astype(str)      # <-- match allx_cols dtype
         nr4 = nr3.reindex()
         
         nr5 = nr4.merge( self.allx_cols,
@@ -145,11 +147,11 @@ class NetRevenue:
     def create_net_revenue_monthly(self):
         
         IM = self.income_monthly
-        start = pd.Timestamp('2023-12-31')
-        income1 = IM.loc[ IM.index > start, :].copy()       #income monthly is already baht + liters
+    
+        income1 = IM.loc[ IM.index > self.startdate, :].copy()       #income monthly is already baht + liters
         
         cost1a  = pd.DataFrame(self.feedcost_monthly.sum(axis=1).rename('cost'))
-        cost1   = cost1a.loc[cost1a.index > start, :].copy()
+        cost1   = cost1a.loc[cost1a.index > self.startdate, :].copy()
         
         # format as monthly period: 2025-06 instead of 2025-06-30
         # this eliminates the prob of one df being 2026-06-01 and the other 2026-06-30

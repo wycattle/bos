@@ -37,7 +37,8 @@ class OccasionalModal:
         "net_revenue",
         "daily_milk_vs_fullday", 
         "net_income",
-        "net_revenue_sum"
+        "net_revenue_sum",
+        "daily_milk_vs_fullday"
     ]
 
     @classmethod
@@ -99,7 +100,12 @@ class OccasionalModal:
             "wy_id":"int","net_revenue":"float","status":"text","lact_num_x":"int",
             "price":"float","adj_net_rev":"float","lact_num_y":"int"}
         )
-        
+        self.daily_milk_vs_fullday_table_fmt = FormatForNeon(schema={
+            "datex":"date","am_liters":"float","pm_liters":"float","wy":"float",
+            "cp":"float","sick_am":"int","sick_pm":"int","heifers_am":"int",
+            "heifers_pm":"int","heldback_total":"int","wy_heldback":"float",
+            "wy_minus_cp":"float"}
+        )        
         
 
     def load_and_process(self):
