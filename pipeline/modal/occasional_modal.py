@@ -89,8 +89,10 @@ class OccasionalModal:
             schema={"datex": "date", "income": "float", "cost": "float", "net_revenue": "float"},
         )
         self.daily_milk_vs_fullday_fmt = FormatForNeon(schema={
-            "datex": "date", "am_liters": "float", "pm_liters": "float", "total_liters": "float",
-        })
+            "datex":"timestamp","milkings":"int","wy":"float","heldback":"float",
+            "wy_heldback":"float","cp_adj":"float","cp_actual":"float","wy_minus_cp":"float"}
+        )        
+        
         self.net_income_table_fmt = FormatForNeon(schema={
             "datex":"date","avg_liters":"float","income":"float","feed_cost":"float",
             "net_revenue":"float","total_xfeed_cost":"float","net_income":"float",
@@ -100,13 +102,6 @@ class OccasionalModal:
             "wy_id":"int","net_revenue":"float","status":"text","lact_num_x":"int",
             "price":"float","adj_net_rev":"float","lact_num_y":"int"}
         )
-        self.daily_milk_vs_fullday_table_fmt = FormatForNeon(schema={
-            "datex":"date","am_liters":"float","pm_liters":"float","wy":"float",
-            "cp":"float","sick_am":"int","sick_pm":"int","heifers_am":"int",
-            "heifers_pm":"int","heldback_total":"int","wy_heldback":"float",
-            "wy_minus_cp":"float"}
-        )        
-        
 
     def load_and_process(self):
         if "next_ultra_check" in self.targets:
