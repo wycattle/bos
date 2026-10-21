@@ -11,16 +11,7 @@ S3_NET_REVENUE_PREFIX = "plots/Net_Revenue"
 
 class PlotNetRevenueModel:
     def __init__(self):
-        self.NR = None
-        self.BSO = None
-        # self.LLS = None
-        self.income_weekly = None
-        self.feedcost_weekly = None
-        self.net_revenue_weekly = None
-        self.alive_ids = None
-        self.date_of_change1 = None
-        self.date_of_change2 = None
-
+        pass
     def load(self):
         self.NR = get_dependency('net_revenue')
         self.SD = get_dependency('status_data')
@@ -28,22 +19,22 @@ class PlotNetRevenueModel:
         self.process()
 
     def process(self):
-        self.income_weekly = self.NR.income_weekly
-        self.feedcost_weekly = self.NR.feedcost_weekly
+        self.total_income_weekly      = self.NR.total_income_weekly
+        self.feedcost_weekly    = self.NR.feedcost_weekly
         self.net_revenue_weekly = self.NR.net_revenue_weekly
-        self.alive_ids = self.SD.alive_ids_today
-        self.date_of_change1 = self.DOC.date_of_change1
-        self.date_of_change2 = self.DOC.date_of_change2
+        self.alive_ids_today    = self.SD.alive_ids_today
+        self.date_of_change1    = self.DOC.date_of_change1
+        self.date_of_change2    = self.DOC.date_of_change2
         self.plot_all_live_cows()
 
     def plot_all_live_cows(self):
-        for wy_id in self.alive_ids:
+        for wy_id in self.alive_ids_today:
             self.plot_one_cow(wy_id)
 
     def plot_one_cow(self, wy_id):
         cols = {}
         for name, wide_df in (
-            ('revenue', self.income_weekly),
+            ('revenue', self.total_income_weekly),
             ('feedcost', self.feedcost_weekly),
             ('net_revenue', self.net_revenue_weekly),
         ):

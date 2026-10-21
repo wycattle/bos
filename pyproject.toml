@@ -5,20 +5,37 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "dash>=4.1.0",
-    "google-api-python-client>=2.195.0",
-    "google-auth-oauthlib>=1.2.3",
-    "keyring>=25.7.0",
-    "matplotlib>=3.10.9",
-    "networkx>=3.6.1",
-    "pandas>=3.0.2",
-    "pyexcel-ods>=0.6.0",
-    "python-dotenv>=1.2.2",
-    "xlsxwriter>=3.2.9",
+    "dash==4.4.1",
+    "google-api-python-client==2.198.0",
+    "google-auth-oauthlib==1.4.0",
+    "keyring==25.7.0",
+    "matplotlib==3.11.1",
+    "networkx==3.6.1",
+    "pandas==3.0.5",
+    "pyexcel-ods==0.6.0",
+    "python-dotenv==1.2.2",
+    "xlsxwriter==3.2.9",
     "psycopg2-binary==2.9.12",
     "sqlalchemy==2.0.51",
     "greenlet==3.5.4",
+    "pyvis==0.3.2",
 ]
+
+[tool.setuptools]
+# loose top-level .py files in the root (auto-discovery skips these)
+py-modules = ["container", "milk_basics", "date_range"]
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = [
+    "feed_functions*",
+    "finance_functions*",
+    "groups_and_tests*",
+    "insem_functions*",
+    "milk_functions*",
+    "pipeline*",
+    "plot_functions*",
+    "status_functions*",
+    "utilities*",
+    "sql_db_related*",
+]

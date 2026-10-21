@@ -18,16 +18,21 @@ class MilkIncome:
         
     def process(self):
         
-        self.start = pd.Timestamp('2026-01-01')
-        
+        self.start = pd.Timestamp('2024-01-01')
+        self.truncated_start    = self.DR.truncated_start_date
+
         self.milk_daily         = self.MA.milk
+
         self.milk_weekly_total  = self.MA.weekly_total
+        self.weekly_total_by_cow= self.MA.weekly_total_by_cow
+
         self.milk_monthly_total = self.MA.monthly_total
         self.milk_monthly_avg   = self.MA.monthly_avg
+        self.milk_monthly_total_by_cow = self.MA.monthly_total_by_cow
  
-        self.income_daily       = self.create_income_daily()
-        self.income_weekly      = self.create_income_weekly()
-        self.income_monthly     = self.create_income_monthly()
+        self.total_income_daily,    self.income_by_cow_daily      = self.create_income_daily()
+        self.income_by_cow_weekly,  self.total_income_weekly      = self.create_income_weekly()
+        self.total_income_monthly     = self.create_income_monthly()
         
     def create_income_daily(self):
         
@@ -37,39 +42,40 @@ class MilkIncome:
         milk = milk.sort_index()
 
         
-        milk_liters = milk.loc[self.start:, :].copy()
+        milk_liters = milk.loc[self.truncated_start:, :].copy()
         self.milk_liters_daily_sum = milk_liters.sum(axis=1)
         
-        income = self.milk_liters_daily_sum * 22
-        self.income_daily = pd.DataFrame(income)
-        return self.income_daily
+        total_income = self.milk_liters_daily_sum * 22   #series
+        self.total_income_daily = pd.DataFrame(total_income)
+
+ 
+        self.income_by_cow_daily = milk_liters * 22
+
+        return self.total_income_daily, self.income_by_cow_daily
     
     
     def create_income_weekly(self):
-        milk = self.milk_weekly_total.copy()
-        milk_liters = milk.loc[self.start:, :].copy()
+        total_milk = self.milk_weekly_total.copy()
+        total_milk_liters = total_milk.loc[self.truncated_start:, :].copy() #weekly milk (agg=sum) for all the cows, truncated
+        total_milk_liters_weekly = total_milk_liters.sum(axis=1) #series --- the sum of all the cows
         
-        milk_liters_weekly = milk_liters.sum(axis=1)
-        
-        income = milk_liters_weekly * 22
-        self.income_weekly = pd.DataFrame(income)
-        return self.income_weekly
+        total_income_weekly = total_milk_liters_weekly * 22
+        self.income_by_cow_weekly = pd.DataFrame(total_milk_liters * 22)
+        self.total_income_weekly = pd.DataFrame(total_income_weekly, columns=['income'])
+        return self.income_by_cow_weekly, self.total_income_weekly
     
     def create_income_monthly(self):
+        total_milk = pd.DataFrame(self.milk_monthly_total.copy())  
+        total_milk_liters = total_milk.loc[self.truncated_start:, :].copy() #monthly milk (agg=sum) for all the cows, truncated
+        total_milk_liters_monthly  = total_milk_liters.sum(axis=1) #series --- the sum of all the cows
+        milk_liters_by_cow_monthly = total_milk_liters.copy()
         
-        milk = self.milk_monthly_total.copy()
-        milk_liters_monthly = milk.loc[self.start:].copy()
-        
+        total_income_monthly = total_milk_liters_monthly * 22
+        self.income_by_cow_monthly = pd.DataFrame(milk_liters_by_cow_monthly * 22)
+        self.total_income_monthly = pd.DataFrame(total_income_monthly)
+        return self.income_by_cow_monthly, self.total_income_monthly
 
-        
-        income = milk_liters_monthly * 22
-        self.income_monthly = income.to_frame(name='income_monthly')     
-        avg_liters    = self.milk_monthly_avg
-        
-
-        self.income_monthly = pd.concat([income.rename('income'), avg_liters.rename('avg_liters')], axis=1)
-        return self.income_monthly
-
+    
 if __name__ == '__main__':
     obj=MilkIncome()
     obj.load()

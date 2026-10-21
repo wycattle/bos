@@ -42,6 +42,7 @@ class FeedcostBasics:
         
     def process(self):
         self.rng_daily  = self.date_range.date_range_daily
+        self.truncated_rng_daily = self.date_range.truncated_date_range_daily
         
         self.basic_feed_types       = self.FDP.basic_feed_types.copy() #series
         self.daily_amt_feed_types   = self.FDP.daily_amt_feed_types.copy()
@@ -87,12 +88,15 @@ class FeedcostBasics:
                 else:
                     group_totals[prefix] += cost
 
-        self.feedcost_F_df = pd.DataFrame({'totalcostF': group_totals['fresh']}, index=self.rng_daily)
-        self.feedcost_A_df = pd.DataFrame({'totalcostA': group_totals['a']}, index=self.rng_daily)
-        self.feedcost_B_df = pd.DataFrame({'totalcostB': group_totals['b']}, index=self.rng_daily)
-        self.feedcost_C_df = pd.DataFrame({'totalcostC': group_totals['c']}, index=self.rng_daily)
-        self.feedcost_D_df = pd.DataFrame({'totalcostD': group_totals['d']}, index=self.rng_daily)
-        self.feedcost_H_df = pd.DataFrame({'totalcostH': group_totals['h']}, index=self.rng_daily)
+        # Slice the cost arrays by truncated_rng_daily before converting to DataFrames
+        truncated_mask = self.rng_daily.isin(self.truncated_rng_daily)
+
+        self.feedcost_F_df = pd.DataFrame({'totalcostF': group_totals['fresh'][truncated_mask]}, index=self.truncated_rng_daily)
+        self.feedcost_A_df = pd.DataFrame({'totalcostA': group_totals['a'][truncated_mask]}, index=self.truncated_rng_daily)
+        self.feedcost_B_df = pd.DataFrame({'totalcostB': group_totals['b'][truncated_mask]}, index=self.truncated_rng_daily)
+        self.feedcost_C_df = pd.DataFrame({'totalcostC': group_totals['c'][truncated_mask]}, index=self.truncated_rng_daily)
+        self.feedcost_D_df = pd.DataFrame({'totalcostD': group_totals['d'][truncated_mask]}, index=self.truncated_rng_daily)
+        self.feedcost_H_df = pd.DataFrame({'totalcostH': group_totals['h'][truncated_mask]}, index=self.truncated_rng_daily)
         
         return self.feedcost_F_df, self.feedcost_A_df, self.feedcost_B_df, self.feedcost_C_df, self.feedcost_D_df, self.feedcost_H_df 
     

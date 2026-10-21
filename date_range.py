@@ -17,8 +17,12 @@ class DateRange:
 
     def load_and_process(self):
         self.startdate          = self.start_date()
+        self.truncated_start_date = self.truncated_start_date()
         self.enddate_daily      = self.end_date_daily()
         self.date_range_daily   = self.create_date_range_daily()
+        self.truncated_date_range_daily  = self.create_truncated_date_range_daily()
+        self.truncated_date_range_weekly = self.create_truncated_date_range_weekly()
+
         self.date_range_weekly  = self.create_date_range_weekly()
         self.enddate_monthly    = self.end_date_monthly()
         [self.date_range_monthly1,
@@ -27,6 +31,10 @@ class DateRange:
     def start_date(self):
         self.startdate = pd.to_datetime("2016-09-01")  #timestamp
         return self.startdate
+
+    def truncated_start_date(self):
+        self.truncated_start_date = pd.to_datetime("2024-01-01")  #timestamp
+        return self.truncated_start_date
     
     def end_date_monthly(self):
 
@@ -49,11 +57,23 @@ class DateRange:
         self.date_range_daily = pd.date_range(start=self.startdate, 
                 end=self.enddate_daily, freq='D')
         return self.date_range_daily
+
+    def create_truncated_date_range_daily(self):
+        self.truncated_date_range_daily = pd.date_range(start=self.truncated_start_date, 
+                end=self.enddate_daily, freq='D')
+        return self.truncated_date_range_daily
+
+    
     
     def create_date_range_weekly(self):
         self.date_range_weekly = pd.date_range(start=self.startdate, 
                 end=self.enddate_daily, freq='W')
         return self.date_range_weekly
+
+    def create_truncated_date_range_weekly(self):
+        self.truncated_date_range_weekly = pd.date_range(start=self.truncated_start_date, 
+                end=self.enddate_daily, freq='W')
+        return self.truncated_date_range_weekly    
     
     def create_date_range_monthly(self):
  

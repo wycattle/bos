@@ -8,25 +8,7 @@ from container import get_dependency
 class WeeklyLactations():
     def __init__(self):
         print(f"WeeklyLactations instantiated by: {inspect.stack()[1].filename}")
-        self.MB = None
-        self.DR = None
-        self.L = None
-        self.SD = None
-        self.data = None
-        self.alive_ids = None
-        self.lact1 = self.lact2 = self.lact3 = self.lact4 = self.lact5 = None
-        self.wk_lacts = None
-        self.lactation_wk_1 = self.lactation_wk_2 = self.lactation_wk_3 = self.lactation_wk_4 = self.lactation_wk_5 = None
-        self.live_lact_wk_1 = None
-        self.live_lact_wk_2 = None
-        self.live_lact_wk_3 = None
-        self.live_lact_wk_4 = None
-        self.live_lact_wk_5 = None
-        self.max_liters_list2 = None
-        self.max_df = None
-        self.avg_liters = None
-        self.max_liters = None
-        self.sum_liters = None        
+   
 
     def load(self):
         self.MB     = get_dependency('milk_basics')
@@ -38,7 +20,7 @@ class WeeklyLactations():
     def process(self):
 
         self.data       = self.MB.data
-        self.alive_ids  = [str(i) for i in self.SD.alive_ids_today]
+        self.alive_ids  = [str(i) for i in self.SD.alive_ids_today_list]
 
         (self.lact1, self.lact2, 
          self.lact3, self.lact4, 

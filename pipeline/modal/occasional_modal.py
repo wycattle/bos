@@ -37,8 +37,7 @@ class OccasionalModal:
         "net_revenue",
         "daily_milk_vs_fullday", 
         "net_income",
-        "net_revenue_sum",
-        "daily_milk_vs_fullday"
+        "net_revenue_sum"
     ]
 
     @classmethod
@@ -177,9 +176,54 @@ class OccasionalModal:
                 self.ipiv_pivot_table_fmt.write_conn(self.ipiv_pivot_table_formatted, 'ipiv_pivot_table_formatted', conn, pk_col='wy_id')
             if "net_revenue" in self.targets:
                 self.net_revenue_table_fmt.write_conn(self.net_revenue_table_formatted, 'net_revenue_table_formatted', conn, pk_col='datex')
+            # if "daily_milk_vs_fullday" in self.targets:
+            #     self.daily_milk_vs_fullday_fmt.write_conn(self.daily_milk_vs_fullday_formatted, 'daily_milk_vs_fullday_formatted', conn, pk_col='datex')
+
             if "daily_milk_vs_fullday" in self.targets:
-                self.daily_milk_vs_fullday_fmt.write_conn(self.daily_milk_vs_fullday_formatted, 'daily_milk_vs_fullday_formatted', conn, pk_col='datex')
+                    self.daily_milk_vs_fullday_fmt.write_conn(self.daily_milk_vs_fullday_formatted, 'daily_milk_vs_fullday_formatted', conn, pk_col='datex')
+                    self.daily_milk_vs_fullday_formatted = self.DMVF.daily_milk_vs_fullday.copy()
+            
+                    if os.environ.get("OCC_DEBUG_CSV"):
+                            out = os.path.join(os.environ["OCC_DEBUG_CSV"], "daily_milk_vs_fullday_debug.csv")
+                            self.daily_milk_vs_fullday_formatted.to_csv(out, index=False)
+                            print(f"[debug] wrote {out}")
+                    
+
+
+
+
             if "net_income" in self.targets:
                 self.net_income_table_fmt.write_conn(self.net_income_table_formatted, 'net_income_table_formatted', conn, pk_col='datex')
             if "net_revenue_sum" in self.targets:
                 self.net_revenue_sum_table_fmt.write_conn(self.net_revenue_sum_table_formatted, 'net_revenue_sum_table_formatted', conn, pk_col='wy_id')                
+                
+                
+               # ... existing code ...
+
+if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+
+    # bos_root = os.environ.get("BOS_ROOT")
+    # if not bos_root:
+    #     raise SystemExit("Set BOS_ROOT first.")
+    # if bos_root not in sys.path:
+    #     sys.path.insert(0, bos_root)
+
+    om = OccasionalModal(targets=["daily_milk_vs_fullday"], branch="production")
+
+    # Load the dependency and build the frame WITHOUT writing to Neon.
+    om.DMVF = get_dependency('daily_milk_vs_fullday')
+    om.createOccasionalData()
+
+    df = om.daily_milk_vs_fullday_formatted
+    print(df.dtypes)
+    print(df.head(20))
+    print(df.tail(20))
+    print("shape:", df.shape)
+
+    out = Path("/home/alanw/Documents/vsCode_output/milk/test.csv")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(out, index=False)
+    print(f"wrote {out}") 
+                

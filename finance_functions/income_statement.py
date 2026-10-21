@@ -17,7 +17,7 @@ class IncomeStatement:
         self.NR = get_dependency('net_revenue')
         self.Capex = get_dependency('capex_basics')
         self.MI = get_dependency('milk_income')
-        self.avg_liters = self.MI.income_monthly.loc[:, 'liters']
+        self.avg_liters = self.MI.total_income_monthly.loc[:, 'liters']
         self.net_income = self.createNetIncome()
         self.write_to_csv()
         

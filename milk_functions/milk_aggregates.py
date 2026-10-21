@@ -50,9 +50,14 @@ class MilkAggregates:
         self.halfday = self.halfday_AM_PM()
         self.tenday, self.tenday1 = self.ten_day()
 
-        [self.milk_sum, self.monthly_avg, self.monthly_total_by_cow,
-                self.monthly_total,  self.monthly_avg,
-                self.weekly_avg, self.weekly_total]                  = self.create_monthly_weekly()
+        [self.milk_sum, 
+                self.monthly_avg, 
+                self.monthly_total_by_cow,
+                self.monthly_total,  
+                self.monthly_avg,
+                self.weekly_total_by_cow,
+                self.weekly_avg, 
+                self.weekly_total]      = self.create_monthly_weekly()
        
     def halfday_AM_PM(self):
         lastday_AM = self.am.iloc[:,-1:]
@@ -107,15 +112,21 @@ class MilkAggregates:
         
         self.milk_sum = self.milk.sum(axis=1) # series with only the sum of the cols
         
-        self.monthly_total_by_cow    = self.milk.resample('ME').mean()  # all the cows
+        self.monthly_total_by_cow    = self.milk.resample('ME').sum()  # all the cows 
         self.monthly_total  = self.milk_sum.resample('ME').sum()    # just the sum
         self.monthly_avg    = self.milk_sum.resample('ME').mean() 
-        
+
+        self.weekly_total_by_cow    = self.milk.resample('W').sum()  # all the cows        
         self.weekly_avg     = self.milk.resample('W').mean()
         self.weekly_total   = self.milk.resample('W').sum()
-        return [self.milk_sum, self.monthly_avg, self.monthly_total_by_cow,
-                self.monthly_total,  self.monthly_avg,
-                self.weekly_avg, self.weekly_total]
+        return [self.milk_sum, 
+                self.monthly_avg, 
+                self.monthly_total_by_cow,
+                self.monthly_total,  
+                self.monthly_avg,
+                self.weekly_total_by_cow,
+                self.weekly_avg, 
+                self.weekly_total]
         
 
 

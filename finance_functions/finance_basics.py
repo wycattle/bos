@@ -54,8 +54,9 @@ class FinanceBasics:
             self.bkk_farm_non_capex['desc_1'] == 'feed' ].copy()
 
         #methods
-        (self.feed_cost_df,
-         self.feed_cost_pivot)      = self.create_feed_cost_pivot()
+        (self.feed_cost_pivot, 
+         self.feed_cost_tidy_long
+         )                          = self.create_feed_cost_pivot()
         
         (self.non_feed_cost_df, 
          self.cost_xfeed_pivot_long,
@@ -78,15 +79,17 @@ class FinanceBasics:
             values = 'debit',
             columns= 'desc_2',
             aggfunc= 'sum'  )
+
+        df3 = df2.copy()
  
             # Melt wide pivot -> tidy long format
-        self.feed_cost_pivot = (
-            df2.stack()
+        self.feed_cost_tidy_long = (
+            df3.stack()
             .rename('value')
             .reset_index()          # columns: datex, desc_2, value
             )
-        self.feed_cost_df = df2
-        return self.feed_cost_df, self.feed_cost_pivot
+        self.feed_cost_pivot = df2
+        return self.feed_cost_pivot, self.feed_cost_tidy_long
         
         
     def create_cost_xfeed_pivot(self):      # non-feed costs
@@ -95,10 +98,6 @@ class FinanceBasics:
             df['year'].astype(str) + '-' + df['month'].astype(str) + '-01'
         )
         df = df[df['desc_1'] != 'sale']
-        
-
-
-
 
         df2= (
             df.groupby(['datex', 'desc_1'], as_index=False)['debit']
@@ -115,15 +114,11 @@ class FinanceBasics:
                 )
 
         df3.index = df3.index.date
-        
-        df4 = df3.sum(axis=1)
+        df4       = df3.sum(axis=1)
         self.total_cost_xfeed = pd.DataFrame(df4, columns=['total_xfeed_cost'])
-        
         
         self.cost_xfeed_pivot_long = df2       
         self.non_feed_cost_df = df3
-        
-        
         
         return self.non_feed_cost_df,self.cost_xfeed_pivot_long, self.total_cost_xfeed
      
@@ -147,8 +142,7 @@ class FinanceBasics:
         output_dir = Path("/home/alanw/Documents/vsCode_output/feed")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        self.feed_cost_df       .to_csv(output_dir / "feed_cost_df.csv")
-        
+        self.feed_cost_pivot    .to_csv(output_dir / "feed_cost_pivot.csv")
         
         
         output_dir = Path("/home/alanw/Documents/vsCode_output/finance")

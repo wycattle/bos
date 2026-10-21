@@ -85,6 +85,7 @@ class Container:
         self.register_singleton('milk_aggregates_basic', self._create_milk_aggregates_basic)
         self.register_singleton('milk_aggregates',       self._create_milk_aggregates)
         self.register_singleton('daily_milk_vs_fullday', self._create_daily_milk_vs_fullday)
+        self.register_singleton('milk_forecast',         self._create_milk_forecast)
 
         #plot functions
         self.register_singleton('plot_net_revenue_model', self._create_plot_net_revenue_model)
@@ -118,9 +119,7 @@ class Container:
         # pipeline dependencies
         self.register_singleton('format_for_neon',      self._create_format_for_neon)
         self.register_singleton('daily_modal_data',     self._create_daily_modal_data)    
-        # self.register_singleton('occasional_modal_stage1', self._create_occasional_modal_stage1)
-        # self.register_singleton('occasional_modal_stage2', self._create_occasional_modal_stage2)
-        # self.register_singleton('modal_orchestrator',   self._create_modal_orchestrator)
+
 
         
 
@@ -221,7 +220,6 @@ class Container:
         # Visualization of dependencies
     def show_dependency_graph(self):
         from pyvis.network import Network
-
         net = Network(height='800px', width='100%', directed=True, notebook=False)
         net.from_nx(self._dependency_graph)
         net.show_buttons(filter_=['physics'])  # lets you tune layout live in-browser
@@ -324,7 +322,10 @@ class Container:
     def _create_daily_milk_vs_fullday(self):
         from milk_functions.daily_milk_vs_fullday import DailyMilkVsFullday
         return DailyMilkVsFullday()
-    
+
+    def _create_milk_forecast(self):
+        from milk_functions.forecast import MilkForecast
+        return MilkForecast()
     
     # plot functions
     def _create_plot_net_revenue_model(self):

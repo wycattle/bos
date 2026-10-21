@@ -33,6 +33,7 @@ cp_actual      The receipt exactly as recorded, shown only on its pickup date.
 
 import inspect
 import pandas as pd
+import sys; print('sys path: ', sys.path)
 from pathlib import Path
 from pipeline.neon.neon_connect import get_engine, read_sql_table_traced
 

@@ -19,7 +19,7 @@ from sqlalchemy import create_engine, event
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 
-from container import container
+from container import container  #container exists in container.py at bottom
 
 _TABLE_RE = re.compile(r'\bFROM\s+"?(\w+)"?', re.IGNORECASE)
 #his regex is designed to extract a table name following a FROM clause in a SQL string. 

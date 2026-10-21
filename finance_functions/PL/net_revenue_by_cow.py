@@ -11,34 +11,49 @@ class NetRevenueByCow:
     
     def load(self):
         self.FC = get_dependency('feedcost_weekly')
-        self.Lact = get_dependency('lactations')
+        self.MI = get_dependency('milk_income')
 
         self.process()
              
     def process(self):
-        self.total_feedcost_by_cow = self.FC.feedcost_weekly  #all cows 
-        self.lactation_totals_all = self.Lact.lactation_totals_all        
 
         #methods
-        self.net_revenue_by_cow  =  self.create_net_revenue_by_cow()
+        self.total_net_revenue_weekly  =  self.create_total_net_revenue_weekly_weekly()
+        self.net_revenue_by_cow_weekly = self.create_net_revenue_by_cow_weekly()
         self.write_to_csv()
 
         
-    def create_net_revenue_by_cow(self):
-        income = (self.lactation_totals_all['total_liters'] * 22).to_frame('income')
+    def create_total_net_revenue_weekly_weekly(self):
+        income = self.MI.total_income_weekly.copy()  #df
         income.index = income.index.astype(str) 
-        feedcost = (self.total_feedcost_by_cow)
+        feedcost = pd.DataFrame(self.FC.feedcost_total_weekly.copy(), columns=['feedcost'])
         feedcost.index = feedcost.index.astype(str)
         nr1 = pd.merge(feedcost, income, left_index=True, right_index=True)
         nr1['net revenue'] = nr1['income'] - nr1['feedcost']
         
-        self.net_revenue_by_cow = nr1
-        return self.net_revenue_by_cow
-        
+        self.total_net_revenue_weekly = nr1
+        return self.total_net_revenue_weekly
+
+
+    def create_net_revenue_by_cow_weekly(self):
+        feedcost = self.FC.avg_feedcost_by_cow_weekly.copy()
+        feedcost.index.name = 'datex'
+        income   = self.MI.income_by_cow_weekly.copy()
+        feedcost.index = feedcost.index.astype(str)
+        income.index = income.index.astype(str)
+        income = income.reindex(feedcost.index)
+
+
+        nr1 = income - feedcost
+        self.net_revenue_by_cow_weekly = nr1
+        return self.net_revenue_by_cow_weekly
+
+
+
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/finance")
         output_dir.mkdir(parents=True, exist_ok=True)
-        self.net_revenue_by_cow.to_csv(output_dir / "net_revenue_by_cow.csv" )
+        self.total_net_revenue_weekly.to_csv(output_dir / "total_net_revenue_weekly.csv" )
         
         
         

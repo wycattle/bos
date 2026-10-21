@@ -21,27 +21,6 @@ class MilkAggregatesBasic:
 
     def __init__(self):
         print(f"MilkAggregatesBasic instantiated by: {inspect.stack()[1].filename}")
-        self.MB = None
-        self.data = None
-        self.lag = -10
-        self.maxcols = None
-        self.idx_am = None
-        self.idx_pm = None
-        self.wy_am_np = None
-        self.wy_pm_np = None
-        self.liters_am_np = None
-        self.liters_pm_np = None
-        self.am = None
-        self.pm = None
-        self.fullday_preClean = None
-        self.fullday_lastdate = None
-        self.AM_liters = None
-        self.AM_wy = None
-        self.PM_liters = None
-        self.PM_wy = None
-        self.datex = None
-        self.start_pivot = None
-        self.stop_pivot = None
 
     def load(self):
         self.MB     = get_dependency('milk_basics')

@@ -16,13 +16,20 @@ class LactationBasics:
         self.process()
         
     def process(self):
+
+        self.fullday_weekly_sum = self.create_weekly_fullday()
+
         [self.lactations_array, 
          self.headers] = self.create_lactation_basics()
         
         [self.ongoing_lactations, 
          self.last_lactations] = self.create_ongoing_lactations()
         
-        
+    def create_weekly_fullday(self):
+        fullday = self.MAB.fullday
+        self.fullday_weekly_sum = weekly_fullday = fullday.resample('W').sum() # Sum over each week
+        return self.fullday_weekly_sum
+
 
     def create_lactation_basics(self):
         ''' creates lactations from 2016-09-01'''
