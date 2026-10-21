@@ -13,16 +13,18 @@ class PlotNetRevenueModel:
     def __init__(self):
         pass
     def load(self):
-        self.NR = get_dependency('net_revenue')
+        self.NRBC = get_dependency('net_revenue_by_cow')
         self.SD = get_dependency('status_data')
-        self.DOC= get_dependency('date_of_change')  
+        self.DOC= get_dependency('date_of_change') 
+        self.MI = get_dependency('milk_income') 
+        self.FCW = get_dependency('feedcost_weekly')
         self.process()
 
     def process(self):
-        self.total_income_weekly      = self.NR.total_income_weekly
-        self.feedcost_weekly    = self.NR.feedcost_weekly
-        self.net_revenue_weekly = self.NR.net_revenue_weekly
-        self.alive_ids_today    = self.SD.alive_ids_today
+        self.total_income_weekly      = self.MI.total_income_weekly
+        self.avg_feedcost_by_cow_weekly    = self.FCW.avg_feedcost_by_cow_weekly
+        self.net_revenue_weekly = self.NRBC.net_revenue_by_cow_weekly
+        self.alive_ids_today    = self.SD.alive_ids_today_list
         self.date_of_change1    = self.DOC.date_of_change1
         self.date_of_change2    = self.DOC.date_of_change2
         self.plot_all_live_cows()
@@ -35,12 +37,15 @@ class PlotNetRevenueModel:
         cols = {}
         for name, wide_df in (
             ('revenue', self.total_income_weekly),
-            ('feedcost', self.feedcost_weekly),
+            ('feedcost', self.avg_feedcost_by_cow_weekly),
             ('net_revenue', self.net_revenue_weekly),
         ):
             cols[name] = wide_df[wy_id] if wy_id in wide_df.columns else pd.Series(index=wide_df.index, dtype=float)
 
-        cow_df = pd.DataFrame(cols).sort_index()
+        cow_df = pd.DataFrame(cols)
+        cow_df.index = pd.to_datetime(cow_df.index)  # Ensure index is datetime
+        cow_df = cow_df.sort_index()
+        
         if cow_df.isnull().all().all():
             return  # nothing to plot for this cow
 

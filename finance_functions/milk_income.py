@@ -32,7 +32,7 @@ class MilkIncome:
  
         self.total_income_daily,    self.income_by_cow_daily      = self.create_income_daily()
         self.income_by_cow_weekly,  self.total_income_weekly      = self.create_income_weekly()
-        self.total_income_monthly     = self.create_income_monthly()
+        self.income_by_cow_monthly, self.total_income_monthly     = self.create_income_monthly()
         
     def create_income_daily(self):
         
