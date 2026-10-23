@@ -16,9 +16,6 @@ If you ever see "ModuleNotFoundError: No module named 'container'"
 coming from this file, the fix belongs in the CALLER, not here.
 """
 
-import os
-os.environ["BOS_LOCAL"] = "0"  # gets use
-
 import pandas as pd
 from container import get_dependency
 from pipeline.neon.format_for_neon import FormatForNeon
@@ -36,8 +33,7 @@ class OccasionalModal:
         "ipiv_pivot_table", 
         "net_revenue",
         "daily_milk_vs_fullday", 
-        "net_income",
-        "net_revenue_sum"
+        "net_income"
     ]
 
     @classmethod
@@ -97,10 +93,6 @@ class OccasionalModal:
             "net_revenue":"float","total_xfeed_cost":"float","net_income":"float",
             "liters_shortfall":"float","liters_for_bkeven":"float"
         })
-        self.net_revenue_sum_table_fmt = FormatForNeon(schema={
-            "wy_id":"int","net_revenue":"float","status":"text","lact_num_x":"int",
-            "price":"float","adj_net_rev":"float","lact_num_y":"int"}
-        )
 
     def load_and_process(self):
         if "next_ultra_check" in self.targets:
@@ -121,8 +113,7 @@ class OccasionalModal:
             self.DMVF = get_dependency('daily_milk_vs_fullday')
         if "net_income" in self.targets:
             self.NI = get_dependency('net_income')
-        if "net_revenue_sum" in self.targets:
-            self.NRS = get_dependency('net_revenue')
+
 
         self.createOccasionalData()
         self.write_to_neon(get_engine(branch=self.branch))
@@ -144,16 +135,15 @@ class OccasionalModal:
         if "ipiv_pivot_table" in self.targets:
             self.ipiv_pivot_table_formatted = self.IPIVT.ipiv_pivot_table.copy()
         if "net_revenue" in self.targets:
-            nr = self.NR.net_revenue_monthly.copy()
-            nr.index = nr.index.to_timestamp()
-            nr.index.name = 'datex'
-            self.net_revenue_table_formatted = nr.reset_index()
+            self.net_revenue_table_formatted = self.NR.total_net_revenue_monthly.copy()
+            print('nr table formatted   ', self.net_revenue_table_formatted)#debug print
+
+
         if "daily_milk_vs_fullday" in self.targets:
             self.daily_milk_vs_fullday_formatted = self.DMVF.daily_milk_vs_fullday.copy()
         if "net_income" in self.targets:
             self.net_income_table_formatted = self.NI.net_income.copy()
-        if "net_revenue_sum" in self.targets:
-            self.net_revenue_sum_table_formatted = self.NRS.net_revenue_sum.copy()
+
 
     def write_to_neon(self, engine):
         with engine.begin() as conn:
@@ -176,54 +166,23 @@ class OccasionalModal:
                 self.ipiv_pivot_table_fmt.write_conn(self.ipiv_pivot_table_formatted, 'ipiv_pivot_table_formatted', conn, pk_col='wy_id')
             if "net_revenue" in self.targets:
                 self.net_revenue_table_fmt.write_conn(self.net_revenue_table_formatted, 'net_revenue_table_formatted', conn, pk_col='datex')
-            # if "daily_milk_vs_fullday" in self.targets:
-            #     self.daily_milk_vs_fullday_fmt.write_conn(self.daily_milk_vs_fullday_formatted, 'daily_milk_vs_fullday_formatted', conn, pk_col='datex')
 
             if "daily_milk_vs_fullday" in self.targets:
                     self.daily_milk_vs_fullday_fmt.write_conn(self.daily_milk_vs_fullday_formatted, 'daily_milk_vs_fullday_formatted', conn, pk_col='datex')
-                    self.daily_milk_vs_fullday_formatted = self.DMVF.daily_milk_vs_fullday.copy()
-            
-                    if os.environ.get("OCC_DEBUG_CSV"):
-                            out = os.path.join(os.environ["OCC_DEBUG_CSV"], "daily_milk_vs_fullday_debug.csv")
-                            self.daily_milk_vs_fullday_formatted.to_csv(out, index=False)
-                            print(f"[debug] wrote {out}")
-                    
-
-
-
-
             if "net_income" in self.targets:
                 self.net_income_table_fmt.write_conn(self.net_income_table_formatted, 'net_income_table_formatted', conn, pk_col='datex')
-            if "net_revenue_sum" in self.targets:
-                self.net_revenue_sum_table_fmt.write_conn(self.net_revenue_sum_table_formatted, 'net_revenue_sum_table_formatted', conn, pk_col='wy_id')                
                 
-                
-               # ... existing code ...
 
 if __name__ == "__main__":
-    import sys
+
     from pathlib import Path
+    print("Starting occasional_modal.py")
+    try:
+        modal = OccasionalModal(targets=["net_revenue"])
+        print("Created OccasionalModal instance")
+        modal.load_and_process()
+        print("Completed load_and_process")
+    except Exception as e:
+        print(f"Error: {e}")
 
-    # bos_root = os.environ.get("BOS_ROOT")
-    # if not bos_root:
-    #     raise SystemExit("Set BOS_ROOT first.")
-    # if bos_root not in sys.path:
-    #     sys.path.insert(0, bos_root)
-
-    om = OccasionalModal(targets=["daily_milk_vs_fullday"], branch="production")
-
-    # Load the dependency and build the frame WITHOUT writing to Neon.
-    om.DMVF = get_dependency('daily_milk_vs_fullday')
-    om.createOccasionalData()
-
-    df = om.daily_milk_vs_fullday_formatted
-    print(df.dtypes)
-    print(df.head(20))
-    print(df.tail(20))
-    print("shape:", df.shape)
-
-    out = Path("/home/alanw/Documents/vsCode_output/milk/test.csv")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(out, index=False)
-    print(f"wrote {out}") 
                 

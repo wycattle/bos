@@ -40,13 +40,14 @@ class FeedCostWeekly:
         self.days_present                = self.create_days_present()
 
         #keep in this order
-        self.avg_feedcost_by_cow_weekly  = self.create_avg_feedcost_by_cow_weekly()
+        [self.avg_feedcost_by_cow_weekly,
+        self.cumulative_avg_feedcost_by_cow_weekly] = self.create_avg_feedcost_by_cow_weekly()
         self.month_weights               = self.create_month_weights()
         self.avg_feedcost_by_cow_monthly = self.create_avg_feedcost_by_cow_monthly()
 
         #total for all cows
-        self.feedcost_total_weekly  = self.avg_feedcost_by_cow_weekly .sum(axis=1) * 7
-        self.feedcost_total_monthly = self.avg_feedcost_by_cow_monthly.sum(axis=1) * 7
+        self.feedcost_total_weekly  = self.avg_feedcost_by_cow_weekly .sum(axis=1)
+        self.feedcost_total_monthly = self.avg_feedcost_by_cow_monthly.sum(axis=1)
         
         [self.missing_cost_grid, 
         self.missing_cost ]         = self.create_missing_cost()
@@ -98,10 +99,14 @@ class FeedCostWeekly:
 
         # 'days_present' shape and 'cost' shape must be the same
         self.avg_feedcost_by_cow_weekly = cost * self.days_present   
-        return self.avg_feedcost_by_cow_weekly
 
-    
-   
+        # Compute cumulative sum in a vectorized way
+        self.cumulative_avg_feedcost_by_cow_weekly = self.avg_feedcost_by_cow_weekly.cumsum()
+
+        return self.avg_feedcost_by_cow_weekly, self.cumulative_avg_feedcost_by_cow_weekly
+
+
+
     def create_avg_feedcost_by_cow_monthly(self):
         
         cost = self.avg_feedcost_by_cow_weekly.fillna(0.0)

@@ -12,18 +12,19 @@ class NetRevenue:
         
     def load(self):
         self.MI   = get_dependency('milk_income')
-        self.FCBD = get_dependency('feedcost_weekly')
+        self.FW = get_dependency('feedcost_weekly')
         self.FB   = get_dependency('finance_basics')
         self.MA   = get_dependency('milk_aggregates')
         self.IUD  = get_dependency('insem_ultra_data')
         self.MB   = get_dependency('milk_basics')
         self.LB   = get_dependency('lactation_basics')
+
         
         self.process()
 
     def process(self):
-        self.feedcost_total_weekly    = self.FCBD.feedcost_total_weekly
-        self.feedcost_total_monthly   = self.FCBD.feedcost_total_monthly
+        self.feedcost_total_weekly    = self.FW.feedcost_total_weekly
+        self.feedcost_total_monthly   = self.FW.feedcost_total_monthly
         
         #startdate is one year ago
         self.startdate = (pd.Timestamp('now') - pd.DateOffset(years=1)).normalize()        
@@ -38,6 +39,7 @@ class NetRevenue:
         
         self.total_income_weekly  = self.MI.total_income_weekly.copy()
         self.total_income_monthly  = self.MI.total_income_monthly.copy()
+        self.milk_income = self.MI.milk_income.copy()
 
         allx = self.IUD.allx.copy()
         self.allx_cols = allx[['wy_id','status','last_calf_num']].copy()
@@ -51,7 +53,11 @@ class NetRevenue:
         self.adjusted_birth_death       = self.create_adjusted_birth_death()
         self.total_net_revenue_weekly   = self.create_total_net_revenue_weekly()
         self.total_net_revenue_monthly  = self.create_total_net_revenue_monthly()
-        self.total_net_revenue_by_cow   = self.create_total_net_revenue_by_cow()
+        [self.avg_net_revenue_by_cow_weekly, 
+         self.cumulative_avg_net_revenue_by_cow_weekly] = self.create_avg_net_revenue_by_cow_weekly()
+        
+        self.net_revenue_by_cow_by_week   = self.create_net_revenue_by_cow_by_week()
+
 
 
   
@@ -82,8 +88,6 @@ class NetRevenue:
         cost1   = pd.DataFrame(self.feedcost_total_weekly.copy())
 
         # sliced to truncated_start_date already --- both income and cost are 1 col
-
-
         nr1 = income1.merge(cost1, how='left',
             left_index=True,
             right_index=True
@@ -105,41 +109,46 @@ class NetRevenue:
         return self.total_net_revenue_monthly
 
 
+    def create_net_revenue_by_cow_by_week(self):
 
-    def create_total_net_revenue_by_cow(self):
-        milk_liters = pd.DataFrame(self.MA.fullday.sum(axis=0))
-        milk_income = milk_liters * 22
-        cost1 = pd.DataFrame(self.FCBD.avg_feedcost_by_cow_weekly.sum(axis=0))
+        cost1 = pd.DataFrame(self.FW.avg_feedcost_by_cow_weekly)
+        # Assuming cost1 and milk_income are pandas DataFrames
+        milk_income_reshaped = self.milk_income.reindex(index=cost1.index, columns=cost1.columns, fill_value=0)
+        milk1 = milk_income_reshaped - cost1
+        milk1.index.name = 'datex'
+        milk2 = milk1
 
-        nr1 = pd.concat( [cost1, milk_income], axis=1)
-        nr1.index.name = 'wy_id'
-        nr2 = nr1.reset_index()
-        nr2['wy_id'] = nr2['wy_id'].astype(str)
-        nr2.columns = ['wy_id','cost', 'income']
-        nr2['net_revenue']  = nr2['income'] - nr2['cost']
-        nr3=nr2
 
-        bd_price = self.adjusted_birth_death[['wy_id', 'price']].copy()
-        bd_price['wy_id'] = bd_price['wy_id'].astype(str)
+        print('cost1 shape= ', cost1.shape, 'milk2 shape=  ', milk2.shape)
+        nr  = milk2 - cost1
 
-        nr4 = nr3.merge(bd_price,
-                how='left',
-                on='wy_id'
-                )
+        self.net_revenue_by_cow_by_week = nr
         
-        nr4['adj_net_rev'] = nr4['net_revenue'] - nr4['price']
-        self.total_net_revenue_by_cow = nr4
-        return self.total_net_revenue_by_cow    #this is NOT a series for each cow - it is the total for each cow
+        return self.net_revenue_by_cow_by_week   
     
-    
+
+    def create_avg_net_revenue_by_cow_weekly(self):
+                # Get feed cost (already vectorized in feedcost_weekly.py, shape: dates × cows)
+        feed_cost = self.FW.avg_feedcost_by_cow_weekly
+
+        # Compute net revenue per cow-week (vectorized subtraction)
+        self.avg_net_revenue_by_cow_weekly = self.milk_income - feed_cost
+
+        # Compute cumulative net revenue (vectorized cumsum along dates)
+        self.cumulative_avg_net_revenue_by_cow_weekly = self.avg_net_revenue_by_cow_weekly.cumsum()
+
+        return self.avg_net_revenue_by_cow_weekly, self.cumulative_avg_net_revenue_by_cow_weekly
+
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/finance")
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        self.total_net_revenue_weekly .to_csv(output_dir / "net_revenue_weekly.csv")
-        self.total_net_revenue_monthly.to_csv(output_dir / "net_revenue_monthly.csv")
-        self.total_net_revenue_by_cow.to_csv(output_dir / "total_net_revenue_by_cow.csv")
- 
+        self.total_net_revenue_weekly        .to_csv(output_dir / "net_revenue_weekly.csv")
+        self.total_net_revenue_monthly       .to_csv(output_dir / "net_revenue_monthly.csv")
+        self.net_revenue_by_cow_by_week      .to_csv(output_dir / "net_revenue_by_cow_by_week.csv")
+
+        self.cumulative_avg_net_revenue_by_cow_weekly    .to_csv(output_dir / "cumulative_avg_net_revenue_by_cow_weekly.csv")
+
 if __name__ == "__main__":
     obj=NetRevenue()            
     obj.load()

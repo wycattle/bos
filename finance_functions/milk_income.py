@@ -25,6 +25,7 @@ class MilkIncome:
 
         self.milk_weekly_total  = self.MA.weekly_total
         self.weekly_total_by_cow= self.MA.weekly_total_by_cow
+        self.milk_income        = self.weekly_total_by_cow * 22 # fullday liters => baht
 
         self.milk_monthly_total = self.MA.monthly_total
         self.milk_monthly_avg   = self.MA.monthly_avg
