@@ -1,20 +1,25 @@
 '''plot_cum_net_revenue_periods.py'''
-import os
+import io
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
+
+from pipeline.aws.s3_loader import s3_upload_png
 
 PERIOD_CSV = "/home/alanw/Documents/vsCode_output/wet_dry/wet_period_weekly.csv"
 CUM_CSV = "/home/alanw/Documents/vsCode_output/finance/cumulative_avg_net_revenue_by_cow_weekly.csv"
-OUT_DIR = "/home/alanw/Documents/vsCode_output/finance/plots/Cum_Net_Revenue_Periods"
+HEIF_PRICE_CSV = "/home/alanw/Documents/vsCode_output/finance/heifer_price.csv"
 
-# letter -> (odd-number shade, even-number shade)
+# same destination as plot_net_revenue_model
+S3_NET_REVENUE_PREFIX = "plots/Net_Revenue"
+
+FEED_CHANGE_DATE1 = pd.Timestamp('2025-09-24')
+
 BG = {
-    'H': ("#314d70"),   # heifer
-    'W': ("#70314d"),   # wet
-    'D': ("#4d7031"),   # dry
+    'H': "#314d70",   # heifer
+    'W': "#70314d",   # wet
+    'D': "#4d7031",   # dry
 }
 
 
@@ -24,7 +29,22 @@ class PlotCumNetRevenuePeriods:
         self.period = pd.read_csv(PERIOD_CSV, index_col=0, parse_dates=True).sort_index()
         self.cum.columns = self.cum.columns.astype(str)
         self.period.columns = self.period.columns.astype(str)
-        os.makedirs(OUT_DIR, exist_ok=True)
+
+        # heifer prices: plain read, wy_id normalised to str ("237", not 237 / 237.0)
+        hp = pd.read_csv(HEIF_PRICE_CSV)
+        hp.columns = [str(c).strip() for c in hp.columns]
+        print(f"heifer_price.csv columns: {list(hp.columns)}")
+        if 'wy_id' not in hp.columns or 'price' not in hp.columns:
+            print("WARNING: heifer_price.csv needs 'wy_id' and 'price' columns")
+            self.heifer_prices = {}
+        else:
+            hp['wy_id'] = (pd.to_numeric(hp['wy_id'], errors='coerce')
+                           .dropna().astype(int).astype(str))
+            hp['price'] = pd.to_numeric(hp['price'], errors='coerce').fillna(0)
+            hp = hp.dropna(subset=['wy_id'])
+            self.heifer_prices = dict(zip(hp['wy_id'], hp['price']))
+        print(f"{len(self.heifer_prices)} heifer prices loaded")
+
         self.alive_ids_today = self._live_ids()
         print(f"{len(self.alive_ids_today)} live cows")
         for wy_id in self.alive_ids_today:
@@ -61,13 +81,12 @@ class PlotCumNetRevenuePeriods:
             return
         dates = s.index
 
-        fig, ax = plt.subplots(figsize=(14, 8))
+        fig, ax = plt.subplots(figsize=(14, 8))  # the ONLY figure
 
-        handles = []
+        # period background shading
         if key in self.period.columns:
             codes = self.period[key]
             codes = codes[(codes.index >= dates.min()) & (codes.index <= dates.max())]
-            seen = {}
             for start, end, code in self._runs(codes):
                 colour = self._shade_for(code)
                 if colour is None:
@@ -76,31 +95,40 @@ class PlotCumNetRevenuePeriods:
                 ax.text(start + (end - start) / 2, 0.95, code,
                         transform=ax.get_xaxis_transform(),
                         ha='center', va='center', fontsize=20)
-                seen[code] = colour
 
-
+        # cumulative bars
         colors = ["#192638" if v >= 0 else "#ED5E5E" for v in s.values]
-        #creates a bar plot
-        ax.bar(dates, s.values,  color=colors, width = 5, alpha=0.9, zorder=2)
+        ax.bar(dates, s.values, color=colors, width=5, alpha=0.9, zorder=2)
 
+        # y-limits: always leave room for the heifer line (max price 65,000)
+        y_min = s.min()
+        y_max = max(s.max(), 70000)
+        ax.set_ylim(y_min, y_max)
 
-        # Calculate automatic y-limits based on data
-        y_min = s.min()  # Lowest data value
-        y_max = s.max()  # Highest data value
-
-        # Adjust to ensure zero line is at least at y=1000
-        if y_max < 65000:
-            y_max = 65000  # Force zero line to be visible at y=1000
-        elif y_max < 1000: # Only needed if you still want the 1000 minimum
-            y_max = 1000
-
-        ax.set_ylim(y_min, y_max)  # Set dynamic limits
-
-        # Always show zero line
+        # zero line
         ax.axhline(0, color='black', lw=1.0, zorder=3)
 
-        # Configure axes and grid
+        # feed change marker (only if it falls within this cow's plotted range)
+        if dates.min() <= FEED_CHANGE_DATE1 <= dates.max() + pd.Timedelta(days=7):
+            ax.axvline(FEED_CHANGE_DATE1, color="#ECF016", linestyle='-',
+                       linewidth=3, alpha=0.9, zorder=5,
+                       label=f'Feed change: {FEED_CHANGE_DATE1:%y/%m/%d}')
 
+        # heifer price line (price is 0, 45000 or 65000; 0 = no line)
+        heifer_price = float(self.heifer_prices.get(key, 0))
+        if heifer_price > 0:
+            ax.axhline(heifer_price, color="#F21325", linestyle='-', linewidth=4,
+                       alpha=0.8, zorder=4,
+                       label=f'Heifer Price: {heifer_price:,.0f} baht')
+        elif key not in self.heifer_prices:
+            print(f"WARNING: no heifer price row for wy_id {key}")
+
+        # legend: shows whichever lines were drawn (heifer price and/or feed change)
+        if ax.get_legend_handles_labels()[0]:
+            ax.legend(fontsize=12, loc='lower left',
+                      bbox_to_anchor=(0, 1.01), borderaxespad=0)
+
+        # axes and grid
         ax.set_ylabel('baht')
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:,.0f}"))
         ax.tick_params(axis='y', labelsize=14)
@@ -110,26 +138,25 @@ class PlotCumNetRevenuePeriods:
         ax.grid(axis='y', linestyle='--', alpha=0.6, zorder=1)
         ax.set_xlim(dates.min(), dates.max() + pd.Timedelta(days=7))
 
-
         ax.set_title(f'Cumulative Avg Net Revenue - WY {wy_id}', fontsize=20, pad=22)
 
-        # Set dark background for the entire figure
-        fig.patch.set_facecolor("#957979")  # Dark gray background
-        fig.patch.set_alpha(0.5)  # Opaque
-
-        # Set slightly lighter background for just the plot area
-        ax.set_facecolor('#3a3a3a')  # Medium gray plot background
-
-
+        # backgrounds
+        fig.patch.set_facecolor("#957979")
+        fig.patch.set_alpha(0.5)
+        ax.set_facecolor('#3a3a3a')
 
         for spine in ax.spines.values():
-            spine.set_edgecolor("#16020B") # Or choose any color you prefer
-            spine.set_linewidth(2) # Thicker border
-
+            spine.set_edgecolor("#16020B")
+            spine.set_linewidth(2)
 
         plt.tight_layout()
-        fig.savefig(os.path.join(OUT_DIR, f"cow_{wy_id}_cum_net_revenue_periods.png"))
+
+        # upload to S3 (same key as plot_net_revenue_model => overwrites)
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png')
         plt.close(fig)
+        buf.seek(0)
+        s3_upload_png(S3_NET_REVENUE_PREFIX, f"cow_{wy_id}_net_revenue.png", buf.read())
 
 
 if __name__ == "__main__":

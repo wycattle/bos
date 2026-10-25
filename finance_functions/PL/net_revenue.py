@@ -50,7 +50,7 @@ class NetRevenue:
         self.fullday_weekly_sum = self.LB.fullday_weekly_sum
             
         #methods
-        self.adjusted_birth_death       = self.create_adjusted_birth_death()
+        self.heifer_price       = self.create_adjusted_birth_death()
         self.total_net_revenue_weekly   = self.create_total_net_revenue_weekly()
         self.total_net_revenue_monthly  = self.create_total_net_revenue_monthly()
         [self.avg_net_revenue_by_cow_weekly, 
@@ -78,8 +78,8 @@ class NetRevenue:
             index=bd.index,
         )
         
-        self.adjusted_birth_death = bd
-        return self.adjusted_birth_death
+        self.heifer_price = bd[["wy_id","price"]]
+        return self.heifer_price
     
     
     # net-revenue weekly is total for all cows -- baht - not 'liters'
@@ -142,7 +142,8 @@ class NetRevenue:
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/finance")
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
+        self.heifer_price                    .to_csv(output_dir / "heifer_price.csv")
         self.total_net_revenue_weekly        .to_csv(output_dir / "net_revenue_weekly.csv")
         self.total_net_revenue_monthly       .to_csv(output_dir / "net_revenue_monthly.csv")
         self.net_revenue_by_cow_by_week      .to_csv(output_dir / "net_revenue_by_cow_by_week.csv")

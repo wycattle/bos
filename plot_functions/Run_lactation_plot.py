@@ -12,14 +12,7 @@ class RunLactationPlot:
     def __init__(self):
         self.output_folder = str(Path.home() / "gdrive_mount" / "COWS" / "plots" / "Lactation_plots")
         os.makedirs(self.output_folder, exist_ok=True)
-        self.TL = None
-        self.LLS = None
-        self.doc = None
-        self.df_weekly = None
-        self.df_daily = None
-        self.df_id_list = None
-        self.weekly_avg_all = None
-        self.daily_avg_all = None
+
 
     def load(self):
         self.TL = get_dependency('this_lactation')
