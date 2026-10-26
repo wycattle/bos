@@ -32,7 +32,6 @@ class OccasionalModal:
         "cost_xfeed_pivot",
         "ipiv_pivot_table", 
         "net_revenue",
-        "daily_milk_vs_fullday", 
         "net_income"
     ]
 
@@ -83,10 +82,7 @@ class OccasionalModal:
         self.net_revenue_table_fmt = FormatForNeon(
             schema={"datex": "date", "income": "float", "cost": "float", "net_revenue": "float"},
         )
-        self.daily_milk_vs_fullday_fmt = FormatForNeon(schema={
-            "datex":"timestamp","milkings":"int","wy":"float","heldback":"float",
-            "wy_heldback":"float","cp_adj":"float","cp_actual":"float","wy_minus_cp":"float"}
-        )        
+     
         
         self.net_income_table_fmt = FormatForNeon(schema={
             "datex":"date","avg_liters":"float","income":"float","feed_cost":"float",
@@ -109,8 +105,6 @@ class OccasionalModal:
             self.IPIVT = get_dependency('ipiv_pivot_table')
         if "net_revenue" in self.targets:
             self.NR = get_dependency('net_revenue')
-        if "daily_milk_vs_fullday" in self.targets:
-            self.DMVF = get_dependency('daily_milk_vs_fullday')
         if "net_income" in self.targets:
             self.NI = get_dependency('net_income')
 
@@ -137,10 +131,6 @@ class OccasionalModal:
         if "net_revenue" in self.targets:
             self.net_revenue_table_formatted = self.NR.total_net_revenue_monthly.copy()
             print('nr table formatted   ', self.net_revenue_table_formatted)#debug print
-
-
-        if "daily_milk_vs_fullday" in self.targets:
-            self.daily_milk_vs_fullday_formatted = self.DMVF.daily_milk_vs_fullday.copy()
         if "net_income" in self.targets:
             self.net_income_table_formatted = self.NI.net_income.copy()
 
@@ -166,9 +156,6 @@ class OccasionalModal:
                 self.ipiv_pivot_table_fmt.write_conn(self.ipiv_pivot_table_formatted, 'ipiv_pivot_table_formatted', conn, pk_col='wy_id')
             if "net_revenue" in self.targets:
                 self.net_revenue_table_fmt.write_conn(self.net_revenue_table_formatted, 'net_revenue_table_formatted', conn, pk_col='datex')
-
-            if "daily_milk_vs_fullday" in self.targets:
-                    self.daily_milk_vs_fullday_fmt.write_conn(self.daily_milk_vs_fullday_formatted, 'daily_milk_vs_fullday_formatted', conn, pk_col='datex')
             if "net_income" in self.targets:
                 self.net_income_table_fmt.write_conn(self.net_income_table_formatted, 'net_income_table_formatted', conn, pk_col='datex')
                 

@@ -74,8 +74,6 @@ pipeline/neon/dump_table_map.py
 pipeline/neon/format_for_neon.py
 pipeline/neon/neon_connect.py
 pipeline/neon/neon_plots_writer.py
-pipeline/neon/neon_writer2.py
-pipeline/neon/webhook_handler.py
 pipeline/rclone/__init__.py
 plot_functions/Run_lactation_plot.py
 plot_functions/Run_update_plots.py
