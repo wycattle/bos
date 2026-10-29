@@ -1,4 +1,4 @@
-'''finance_functions\\PL\\net_revenue_daily.py'''
+'''finance_functions/PL/net_revenue.py'''
 import inspect
 import pandas as pd
 import numpy as np
@@ -18,7 +18,6 @@ class NetRevenue:
         self.IUD  = get_dependency('insem_ultra_data')
         self.MB   = get_dependency('milk_basics')
         self.LB   = get_dependency('lactation_basics')
-
         
         self.process()
 
@@ -50,37 +49,12 @@ class NetRevenue:
         self.fullday_weekly_sum = self.LB.fullday_weekly_sum
             
         #methods
-        self.heifer_price       = self.create_adjusted_birth_death()
         self.total_net_revenue_weekly   = self.create_total_net_revenue_weekly()
         self.total_net_revenue_monthly  = self.create_total_net_revenue_monthly()
-        [self.avg_net_revenue_by_cow_weekly, 
-         self.cumulative_avg_net_revenue_by_cow_weekly] = self.create_avg_net_revenue_by_cow_weekly()
+
         
-        self.net_revenue_by_cow_by_week   = self.create_net_revenue_by_cow_by_week()
 
 
-
-  
-    def create_adjusted_birth_death(self):
-        bd = self.birth_death.copy()
-        dam_num = bd['dam_num']
-        bd['price'] = pd.Series(
-            np.select(
-                [
-                    dam_num == 'atom',
-                    dam_num<1000,  #np.select picks the first matching condition, so dam_num < 1000 takes priority.
-                    (dam_num > 1000) & (dam_num != 10000),
-                    dam_num == 10000,
-                ],
-                [45000, 0, 65000, 45000],
-                default=np.nan,
-            ),
-            index=bd.index,
-        )
-        
-        self.heifer_price = bd[["wy_id","price"]]
-        return self.heifer_price
-    
     
     # net-revenue weekly is total for all cows -- baht - not 'liters'
     def create_total_net_revenue_weekly(self):
@@ -108,47 +82,15 @@ class NetRevenue:
         self.total_net_revenue_monthly = weekly_df.resample('ME').sum()
         return self.total_net_revenue_monthly
 
-
-    def create_net_revenue_by_cow_by_week(self):
-
-        cost1 = pd.DataFrame(self.FW.avg_feedcost_by_cow_weekly)
-        # Assuming cost1 and milk_income are pandas DataFrames
-        milk_income_reshaped = self.milk_income.reindex(index=cost1.index, columns=cost1.columns, fill_value=0)
-        milk1 = milk_income_reshaped - cost1
-        milk1.index.name = 'datex'
-        milk2 = milk1
-
-
-        print('cost1 shape= ', cost1.shape, 'milk2 shape=  ', milk2.shape)
-        nr  = milk2 - cost1
-
-        self.net_revenue_by_cow_by_week = nr
-        
-        return self.net_revenue_by_cow_by_week   
     
 
-    def create_avg_net_revenue_by_cow_weekly(self):
-                # Get feed cost (already vectorized in feedcost_weekly.py, shape: dates × cows)
-        feed_cost = self.FW.avg_feedcost_by_cow_weekly
-
-        # Compute net revenue per cow-week (vectorized subtraction)
-        self.avg_net_revenue_by_cow_weekly = self.milk_income - feed_cost
-
-        # Compute cumulative net revenue (vectorized cumsum along dates)
-        self.cumulative_avg_net_revenue_by_cow_weekly = self.avg_net_revenue_by_cow_weekly.cumsum()
-
-        return self.avg_net_revenue_by_cow_weekly, self.cumulative_avg_net_revenue_by_cow_weekly
-
+   
     def write_to_csv(self):
-        output_dir = Path("/home/alanw/Documents/vsCode_output/finance")
+        output_dir = Path("/home/alanw/Documents/vsCode_output/finance/net_revenue")
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        self.heifer_price                    .to_csv(output_dir / "heifer_price.csv")
         self.total_net_revenue_weekly        .to_csv(output_dir / "net_revenue_weekly.csv")
         self.total_net_revenue_monthly       .to_csv(output_dir / "net_revenue_monthly.csv")
-        self.net_revenue_by_cow_by_week      .to_csv(output_dir / "net_revenue_by_cow_by_week.csv")
-
-        self.cumulative_avg_net_revenue_by_cow_weekly    .to_csv(output_dir / "cumulative_avg_net_revenue_by_cow_weekly.csv")
 
 if __name__ == "__main__":
     obj=NetRevenue()            

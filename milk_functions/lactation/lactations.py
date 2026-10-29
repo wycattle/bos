@@ -1,6 +1,7 @@
 '''Lactations.py'''
 import inspect
 import pandas as pd
+from datetime import datetime
 from pathlib import Path
 from container import get_dependency
 
@@ -8,35 +9,20 @@ from container import get_dependency
 class Lactations:
     def __init__(self):
         print(f"Lactations instantiated by: {inspect.stack()[1].filename}")
-        self.LB = None
-        self.MB = None
-        self.SD = None
-        self.wy_id_list = None
-        self.alive_ids = None
-        # self.L1 = self.L2 = self.L3 = self.L4 = self.L5 = self.L6 = None
-        self.live_L1_weekly_avg = None
-        self.live_L2_weekly_avg = None
-        self.live_L3_weekly_avg = None
-        self.live_L4_weekly_avg = None
-        self.live_L5_weekly_avg = None
-        self.live_L6_weekly_avg = None
-        self.live_L1_weekly_sum = self.live_L2_weekly_sum =self.live_L3_weekly_sum = None
-        self.live_L4_weekly_sum = self.live_L5_weekly_sum = self.live_L6_weekly_sum = None
-    
-        self.headers = None
-        self.alive_ids_int = None
-        self.all_ids = None
-        self.milking = None
-        self.milking_weekly = None
+        
 
     def load(self):
 
         self.LB     = get_dependency('lactation_basics')
-        self.MB     = get_dependency('milk_basics')
         self.SD     = get_dependency('status_data')
+        self.IUB    = get_dependency('insem_ultra_basics')
+        self.MB     = get_dependency('milk_basics')
+
         self.process()
         
     def process(self):
+
+
 
         self.all_ids        = self.LB.headers #wy_ids - str
         self.alive_ids  = self.SD.alive_ids_today_list
@@ -222,9 +208,9 @@ class Lactations:
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/milk/lactations")
         output_dir.mkdir(parents=True, exist_ok=True)
-        self.live_L1_weekly_sum.to_csv(output_dir / "self.live_L1_weekly_sum.csv")
-        self.lactation_totals_all.to_csv(output_dir / "lactation_totals_all.csv")
-        self.lactation_totals_live.to_csv(output_dir / "lactation_totals_live.csv")
+        self.live_L1_weekly_sum.to_csv(output_dir / "self.live_L1_weekly_sum.csv", index=False)
+        self.lactation_totals_all.to_csv(output_dir / "lactation_totals_all.csv", index=False)
+        self.lactation_totals_live.to_csv(output_dir / "lactation_totals_live.csv", index=False)
 
 
 if __name__ == "__main__":

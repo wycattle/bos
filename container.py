@@ -116,6 +116,7 @@ class Container:
         self.register_singleton('depreciation',         self._create_depreciation)        
         self.register_singleton('net_revenue',          self._create_net_revenue)
         self.register_singleton('net_revenue_by_cow',   self._create_net_revenue_by_cow)
+        self.register_singleton('heifer_price',         self._create_heifer_price)
 
         # pipeline dependencies
         self.register_singleton('format_for_neon',      self._create_format_for_neon)
@@ -325,7 +326,7 @@ class Container:
         return DailyMilkVsFullday()
 
     def _create_milk_forecast(self):
-        from milk_functions.forecast import MilkForecast
+        from milk_functions.lactation.milk_forecast import MilkForecast
         return MilkForecast()
     
     # plot functions
@@ -406,11 +407,11 @@ class Container:
         return FinanceBasics()
     
     def _create_capex_basics(self):
-        from finance_functions.capex.capex_basics import CapexBasics
+        from finance_functions.investment.capex.capex_basics import CapexBasics
         return CapexBasics()  
      
     def _create_capex_projects(self):
-        from finance_functions.capex.capex_projects import CapexProjects
+        from finance_functions.investment.capex.capex_projects import CapexProjects
         return CapexProjects()
 
     def _create_net_income(self):
@@ -418,11 +419,11 @@ class Container:
         return NetIncome()       
 
     def _create_milk_income(self):
-        from finance_functions.milk_income import MilkIncome
+        from finance_functions.PL.milk_income import MilkIncome
         return MilkIncome()
         
     def _create_depreciation(self):
-        from finance_functions.PL.depreciation import DepreciationCalc
+        from finance_functions.investment.capex.depreciation import DepreciationCalc
         return DepreciationCalc()
     
     def _create_net_revenue(self):
@@ -433,6 +434,9 @@ class Container:
         from finance_functions.PL.net_revenue_by_cow import NetRevenueByCow
         return NetRevenueByCow()
 
+    def _create_heifer_price(self):
+        from finance_functions.investment.new_cows.heifer_price import HeiferPrice
+        return HeiferPrice()
 
 
 # Global container instance

@@ -13,15 +13,6 @@ class InsemUltraBasics:
 
         print(f"InsemUltraBasics instantiated by: {inspect.stack()[1].filename}")
 
-        self.DR = None
-        self.MB = None
-        self.data = None
-        self.df = None
-        self.lbpiv = None
-        self.first_calf = None
-        self.last_calf = None
-        self.last_stop = None
-
     def load(self):
         self.DR = get_dependency('date_range')
         self.MB = get_dependency('milk_basics')

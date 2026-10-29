@@ -1,7 +1,6 @@
 '''milk_basics.py'''
 import inspect
 import pandas as pd
-# from container import get_dependency
 from utilities.db_retry import retry_db
 from sqlalchemy import text
 from   pipeline.neon.neon_connect import get_engine
@@ -11,20 +10,6 @@ class MilkBasics:
     @retry_db(max_retries=3, backoff_base=2)
     def __init__(self):
         print(f"MilkBasics instantiated by: {inspect.stack()[1].filename}")
-        self.data = None
-        self.lb = None
-        self.u = None
-        self.i = None
-        self.bd = None
-        self.lastday = None
-        self.datex = None
-        self.extended_date_range_milk = None
-        self.wy_id_list = None
-        self.start = None
-        self.stop = None
-        self.stop_pivot = None
-        self.start_pivot = None
-
 
     def load_and_process(self):
         self.data = self.dataLoader()
@@ -38,7 +23,6 @@ class MilkBasics:
             self.u      = pd.read_sql(text("SELECT * FROM ultra"),        conn)
             self.i      = pd.read_sql(text("SELECT * FROM insem"),        conn)
             self.bd     = pd.read_sql(text("SELECT * FROM birth_death"),  conn)
-            # self.lb      = pd.read_sql(text("SELECT b_date FROM live_births"),  conn)
             
             self.lb     = self.lb   .drop(columns=['typex', 'readex', 'try_num'], errors='ignore')
             self.stop   = self.stop .drop(columns=['type'], errors='ignore')
@@ -110,6 +94,14 @@ class MilkBasics:
                                       values=   'ultra_date',
                                       aggfunc=  'last'
                                       ).reindex(self.wy_id_list)
+        
+        live_birth1 = self.lb.copy()
+        self.live_birth_pivot = pd.pivot_table( live_birth1,
+                                      index=    'wy_id',
+                                      columns=  'calf_num',
+                                      values=   'b_date',
+                                      aggfunc=  'last'
+                                      ).reindex(self.wy_id_list)
 
 
 
@@ -126,7 +118,8 @@ class MilkBasics:
             'ultra_pivot': self.ultra_pivot,
             'lastday': self.lastday,
             'wy_ids' : self.wy_id_list,
-            'ext_rng': self.extended_date_range_milk
+            'ext_rng': self.extended_date_range_milk,
+            'live_birth_pivot': self.live_birth_pivot
 
         }
         return self.data

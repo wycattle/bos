@@ -32,8 +32,8 @@ class WeeklyLactations():
          self.lactation_wk_3, self.lactation_wk_4, 
          self.lactation_wk_5) = self.create_separate_lactations()
         
-        (self.max_liters, self.avg_liters, 
-         self.sum_liters) = self.create_max_avg_sum_liters()
+        (self.max_liters, self.max_liters_index, 
+         self.avg_liters,  self.sum_liters) = self.create_max_avg_sum_liters()
         
     
         self.create_live_lactations()
@@ -97,6 +97,12 @@ class WeeklyLactations():
             [lact.max() for lact in lacts],
             index=[lact_names]
             )
+
+        self.max_liters_index = pd.DataFrame(
+            [lact.idxmax() for lact in lacts],
+            index=lact_names
+            )
+        
         self.avg_liters = pd.DataFrame(
             [lact.mean() for lact in lacts],
             index=[lact_names]
@@ -106,8 +112,7 @@ class WeeklyLactations():
             index=[lact_names]
             )
                     
-
-        return self.max_liters, self.avg_liters, self.sum_liters
+        return self.max_liters, self.max_liters_index, self.avg_liters, self.sum_liters
 
     def create_live_lactations(self):
         #filter by alive_ids
@@ -127,10 +132,11 @@ class WeeklyLactations():
         output_dir.mkdir(parents=True, exist_ok=True)        
         
         max_liters_df = pd.DataFrame(self.max_liters)
-              
-        max_liters_df.to_csv(output_dir / "max_liters.csv")
-        self.avg_liters.to_csv(output_dir / "avg_liters.csv")
-        self.sum_liters.to_csv(output_dir / "sum_liters.csv")
+        max_liters_df.T.to_csv(output_dir / "max_liters.csv")
+        
+        self.max_liters_index.T.to_csv(output_dir / "max_liters_index.csv")              
+        self.avg_liters.T.to_csv(output_dir / "avg_liters.csv")
+        self.sum_liters.T.to_csv(output_dir / "sum_liters.csv")
 
 if __name__ == "__main__":
     obj = WeeklyLactations()
