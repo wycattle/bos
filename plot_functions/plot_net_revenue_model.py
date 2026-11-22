@@ -17,7 +17,7 @@ class PlotNetRevenueModel:
         self.SD = get_dependency('status_data')
         self.DOC= get_dependency('date_of_change') 
         self.MI = get_dependency('milk_income') 
-        self.FCW = get_dependency('feedcost_weekly')
+        self.FCW = get_dependency('feedcost_data')
         self.process()
 
     def process(self):

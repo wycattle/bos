@@ -37,7 +37,7 @@ class Heifers:
         
     def process(self):    
 
-        self.rng =  pd.date_range(start='2024-01-01', end=self.today, freq='D' )
+        self.rng =  pd.date_range(start='2023-01-01', end=self.today, freq='D' )
             
         # Methods
         self.heifers = self.create_heifer_df()

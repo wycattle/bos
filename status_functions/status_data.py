@@ -10,24 +10,6 @@ from container import get_dependency
 class status_data:
     def __init__(self):
         print(f"status_data instantiated by: {inspect.stack()[1].filename}")
-        # load
-        self.MB = None
-        self.DR = None
-        self.WD = None
-        self._MAB = None 
-        
-        #process
-        self.startdate = None
-        self.enddate_daily = None
-        self.bd = None
-        self.lb = None
-
-        
-        #methods
-        self.status_col = None
-        self.status_col_all = None
-        self.alive_ids_today_list = None
-              
 
     def load(self):
         self.MB = get_dependency('milk_basics')
@@ -36,14 +18,14 @@ class status_data:
         self.MAB = get_dependency("milk_aggregates_basic")        
         self.process()
         
-        
     def process(self):        
 
         self.startdate = self.DR.startdate
         self.enddate_daily =self.DR.enddate_daily     
         self.lb = self.MB.data['lb'].copy()
-        self.bd = self.MB.data['bd'].copy()
-        self.bd = self.MB.data['bd'].set_index('wy_id')
+        self.lb_pivot = self.MB.data['live_birth_pivot']
+
+        self.bd = self.MB.data['bd'].copy().set_index('wy_id')
         
         self.wy_ids = self.MB.data['wy_ids']
              
@@ -54,28 +36,29 @@ class status_data:
          self.status_col_all]       = self.create_status()
         
         self.alive_ids_today_list   = self.create_alive_ids_today()
-        
-        self.write_to_csv()
 
 
     def create_age_wy(self):    # age_wy means age since it arrived ...
         today   = pd.Timestamp.now().normalize()
-        bd      = self.bd.reset_index()
-        b_date  = pd.to_datetime(bd['b_date'])
-        d_date  = pd.to_datetime(bd['death_date'])
-        adj_bdate = pd.to_datetime(bd['adj_bdate'])
+        bd      = self.bd.copy()
+        d_date      = pd.to_datetime(bd['death_date'])
+        adj_bdate   = pd.to_datetime(bd['adj_bdate']) # the col in birth_death
         
         # vectorized: dead cows = (death_date - b_date), alive = (today - b_date)
         # numpy.where(condition, [x, y, ]/) ie np.where(condition, if_true, if_false)  
         # and the / at the end means: This slash forbids keyword arguments!
         condition = d_date.notna() #death date exists
-        
+
+        # creates ndarray (321,)
         age = np.where(
                 condition,          #the condition
-                d_date - adj_bdate, #this is the True half of the bool
-                today - adj_bdate,  #this is the False half of the bool
+                d_date - adj_bdate, # is True 
+                today - adj_bdate,  # is False 
             )
+
+        #bd is a df and the new col is days alive for both gone and not gone cows
         bd['wy_age'] = bd['wy_age'] = pd.Series(age).dt.days.astype('Int64')
+
         
         self.wy_age = bd
         
@@ -83,35 +66,41 @@ class status_data:
         
 
     def create_status(self):
-        bd_1 = self.bd
         wyids = list(self.wy_ids)
+
+        # dates for the status period
         fullday = self.MAB.fullday.loc[pd.Timestamp(self.startdate):, :]
-        date_index = fullday.index
+        dates = fullday.index
 
-        # per-cow vectors (shape 1 x n_cows)
-        b_date = pd.to_datetime(bd_1.loc[wyids, 'b_date']).to_numpy()[None, :]
-        d_date = pd.to_datetime(bd_1.loc[wyids, 'death_date']).to_numpy()[None, :]
+        # everything reindexed to wyids -> identical column order by construction
+        bd = self.bd.reindex(wyids)
+        first_bdate = pd.to_datetime(self.lb_pivot[1].reindex(wyids))
+        b_date = pd.to_datetime(bd['b_date'])
+        d_date = pd.to_datetime(bd['death_date'])
+        milk = fullday.reindex(columns=wyids)
 
-        first = self.lb.loc[self.lb['calf_num'] == 1, ['wy_id', 'b_date']].drop_duplicates('wy_id')
-        first_bdate = first.set_index('wy_id')['b_date'].reindex(wyids)
-        # keeps your original logic: heifer only if any first-calf rows exist at all
-        heifer = (len(first) > 0) & first_bdate.isna().to_numpy()[None, :]
+        assert list(bd.index) == list(first_bdate.index) == list(milk.columns) == wyids
 
-        # per-date / cell matrices (n_dates x n_cows)
-        dates = date_index.to_numpy()[:, None]
-        milking = (fullday.reindex(columns=wyids).to_numpy() > 0)   # NaN -> False
-        nby = dates < b_date
-        gone = dates >= d_date                                        # NaT -> False
+        # arrays: (n_dates, 1) vs (1, n_cows) -> broadcast to (n_dates, n_cows)
+        date_idx = dates.to_numpy()[:, None]
+        b_np = b_date.to_numpy()[None, :]
+        d_np = d_date.to_numpy()[None, :]
+        fb_np = first_bdate.to_numpy()[None, :]
+
+        milking = milk.to_numpy() > 0                          # NaN -> False
+        nby = date_idx < b_np                                  # not born yet
+        gone = date_idx >= d_np                                # NaT -> False (still alive)
+        heifer = first_bdate.isna().to_numpy()[None, :] | (date_idx < fb_np)
 
         arr = np.select(
-            [nby, milking, heifer, gone],
-            ['nby', 'milking', 'heifer', 'gone'],
+            [nby, gone, milking, heifer],
+            ['nby', 'gone', 'milking', 'heifer'],
             default='dry',
         )
-        self.status_col_all = pd.DataFrame(arr, index=date_index, columns=wyids, dtype='object')
+
+        self.status_col_all = pd.DataFrame(arr, index=dates, columns=wyids, dtype='object')
         self.status_col = self.status_col_all.iloc[-1, :].copy()
-        return self.status_col, self.status_col_all
-    
+        return self.status_col, self.status_col_all    
     
     def create_alive_ids_today(self):
         status_list = ['nby','milking','heifer','gone','dry']
@@ -127,14 +116,30 @@ class status_data:
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/status")
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
+        sca = self.status_col_all.copy()
+        scat = sca[sca.index >='2023-01-01']
         self.status_col     .to_csv( output_dir / "status_col.csv")
-        self.status_col_all .to_csv( output_dir / "status_col_all.csv")
+        scat                .to_csv( output_dir / "status_col_all.csv")
         self.wy_age         .to_csv( output_dir / "wy_age.csv")
+        self.lb_pivot       .to_csv( output_dir / "lb_pivot.csv")
     
     
 if __name__ == "__main__":
     obj = status_data()
     obj.load()
+    obj.write_to_csv()
+    cow = 15  # change to str if wy_ids are strings
+    sca = obj.status_col_all
+    print(sca.loc['2024-02-01':'2024-02-06', cow])
 
-        
+    # raw inputs to compare against
+    print("b_date:", obj.bd.loc[cow, 'b_date'], "| death:", obj.bd.loc[cow, 'death_date'])
+    print("first calf:", obj.lb_pivot[1].get(cow))
+    print(obj.MAB.fullday.loc['2024-02-01':'2024-02-06', cow])
+    # position check
+    print("pos in wy_ids:", list(obj.wy_ids).index(cow),
+        "| pos in bd:", list(obj.bd.index).index(cow),
+        "| pos in lb_pivot:", list(obj.lb_pivot.index).index(cow))
+
+            

@@ -18,7 +18,7 @@ class MilkIncome:
         
     def process(self):
         
-        self.start = pd.Timestamp('2024-01-01')
+        self.start = pd.Timestamp('2023-01-01')
         self.truncated_start    = self.DR.truncated_start_date
 
         self.milk_daily         = self.MA.milk

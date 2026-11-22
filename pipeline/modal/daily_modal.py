@@ -51,12 +51,12 @@ class DailyModal:
             schema={"wy_id": "int", "AM": "float", "PM": "float"},
             positional_rules=[(0, 1, "int")],   # wy_id column, whatever it's named today
         )
-        self.fullday_fmt = FormatForNeon()      # date-indexed, values left native float
+        self.fullday_fmt = FormatForNeon()      # has no schema and no positional rules and FormatForNeon() has no hardcoded columns, so the table gets whatever columns the fullday DataFrame has that day
         self.groups_fmt = FormatForNeon(
             schema={
                 "wy_id": "int", "group_name": "text", "avg": "float",
                 "days_milking": "int", "u_read": "text",
-                "expected_bdate": "date", "snapshot_date": "date",
+                "expected_bdate": "date", "exp_drydate": "date", "snapshot_date": "date",
             },
             sort_by=[("group_name", "asc"), ("avg", "desc")],
         )

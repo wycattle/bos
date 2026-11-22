@@ -100,7 +100,7 @@ class WhiteboardGroups:
         wbg = wbg.merge(self.tenday_avg, how='left', left_on='wy_id', right_index=True)
 
         # merge cow attributes
-        days = self.allx.loc[:, ['wy_id', 'days_milking', 'u_read', 'expected_bdate']]
+        days = self.allx.loc[:, ['wy_id', 'days_milking', 'u_read', 'expected_bdate', 'exp_drydate']]
         wbg  = wbg.merge(days, how='left', on='wy_id')
 
         wbg = wbg.sort_values('avg', ascending=False).reset_index(drop=True)
@@ -111,4 +111,3 @@ class WhiteboardGroups:
 if __name__ == "__main__":
     obj = WhiteboardGroups()
     obj.load()
-    print(obj.whiteboard_groups_tenday)

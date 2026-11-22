@@ -33,7 +33,7 @@ class DateRange:
         return self.startdate
 
     def truncated_start_date(self):
-        self.truncated_start_date = pd.to_datetime("2024-01-01")  #timestamp
+        self.truncated_start_date = pd.to_datetime("2023-01-01")  #timestamp
         return self.truncated_start_date
     
     def end_date_monthly(self):

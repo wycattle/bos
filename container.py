@@ -78,7 +78,8 @@ class Container:
         self.register_singleton('feedcost_basics',      self._create_feedcost_basics)
         self.register_singleton('feedcost_data_loader', self._create_feedcost_data_loader)
         self.register_singleton('feedcost_data_processor', self._create_feedcost_data_processor)
-        self.register_singleton('feedcost_weekly',      self._create_feedcost_weekly)
+        self.register_singleton('feedcost_data',      self._create_feedcost_data)
+        self.register_singleton('feedcost_to_first_calf', self._create_feedcost_to_first_calf)
       
 
         # milk_functions
@@ -306,9 +307,13 @@ class Container:
         loader = self.get("feedcost_data_loader") 
         return FeedCostDataProcessor(loader)
     
-    def _create_feedcost_weekly(self):
-        from feed_functions.feedcost_weekly import FeedCostWeekly
-        return FeedCostWeekly()
+    def _create_feedcost_data(self):
+        from feed_functions.feedcost_data import FeedCostData
+        return FeedCostData()
+
+    def _create_feedcost_to_first_calf(self):
+        from feed_functions.first_calf_feedcost import FirstCalfFeedCost
+        return FirstCalfFeedCost()
     
     
 

@@ -12,7 +12,7 @@ class NetRevenue:
         
     def load(self):
         self.MI   = get_dependency('milk_income')
-        self.FW = get_dependency('feedcost_weekly')
+        self.FW = get_dependency('feedcost_data')
         self.FB   = get_dependency('finance_basics')
         self.MA   = get_dependency('milk_aggregates')
         self.IUD  = get_dependency('insem_ultra_data')
@@ -36,7 +36,7 @@ class NetRevenue:
         df['wy_id'] = df['wy_id'].astype(str)   # <-- match allx_cols dtype
         self.last_lact_num = df
         
-        self.total_income_weekly  = self.MI.total_income_weekly.copy()
+        self.total_income_weekly   = self.MI.total_income_weekly.copy()
         self.total_income_monthly  = self.MI.total_income_monthly.copy()
         self.milk_income = self.MI.milk_income.copy()
 

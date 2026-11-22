@@ -5,13 +5,11 @@ and injects MB.data['milk'] with the freshly computed fullday.
 No insem dependency — safe to load before status_data.
 '''
 
-# import sys
-# import os
-# sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import inspect
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 from container import get_dependency
 from   pipeline.neon.neon_connect import get_engine, read_sql_table_traced
@@ -218,6 +216,14 @@ class MilkAggregatesBasic:
         return self.fullday_stats
 
 
+    def write_to_csv(self):
+        out = Path("/home/alanw/Documents/vsCode_output/milk")
+        out.mkdir(parents=True, exist_ok=True)        
+
+        self.fullday.to_csv(out / "fullday.csv")
+
+
 if __name__ == '__main__':
     obj = MilkAggregatesBasic()
     obj.load()
+    obj.write_to_csv()

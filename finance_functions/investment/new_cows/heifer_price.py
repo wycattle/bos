@@ -12,7 +12,7 @@ class HeiferPrice:
         
     def load(self):
         # self.MI   = get_dependency('milk_income')
-        # self.FW = get_dependency('feedcost_weekly')
+        # self.FW = get_dependency('feedcost_data')
         # self.FB   = get_dependency('finance_basics')
         # self.MA   = get_dependency('milk_aggregates')
         # self.IUD  = get_dependency('insem_ultra_data')

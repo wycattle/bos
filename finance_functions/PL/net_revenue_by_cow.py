@@ -11,7 +11,7 @@ class NetRevenueByCow:
         
     
     def load(self):
-        self.FCW = get_dependency('feedcost_weekly')
+        self.FCW = get_dependency('feedcost_data')
         self.MI = get_dependency('milk_income')
         self.WL = get_dependency('weekly_lactations')
         self.MB = get_dependency('milk_basics')
@@ -60,7 +60,7 @@ class NetRevenueByCow:
 
 
     def create_avg_net_revenue_by_cow_weekly(self):
-                    # Get feed cost (already vectorized in feedcost_weekly.py, shape: dates × cows)
+                    # Get feed cost (already vectorized in feedcost_data.py, shape: dates × cows)
             feed_cost = self.FCW.avg_feedcost_by_cow_weekly
             milk_income = self.MI.milk_income
 
@@ -77,15 +77,11 @@ class NetRevenueByCow:
 
     def create_net_revenue_analysis(self):
             
-            cutoff_date = pd.Timestamp('2023-01-15')
+            cutoff_date = pd.Timestamp('2023-01-01')
             bd = self.BD # birth_death df
             net_revenue = self.net_revenue_by_cow_total.copy().round(0)
     
-    
             arrived_after = bd.loc[bd['arrived'] >= cutoff_date].reset_index(drop=True)
-            arrived_after_id_list = arrived_after['wy_id'].to_list()
-         
-            dead_now = arrived_after[arrived_after['death_date'].notnull()].reset_index(drop=True)
             last_calf1 = self.IUB.last_calf.copy()
             last_calf2  = pd.DataFrame(last_calf1, columns=['last_calf_num', 'last_calf_bdate'])
             last_calf  = last_calf2.reset_index(drop=False)
@@ -112,7 +108,7 @@ class NetRevenueByCow:
                 (now - arrived).dt.days / 30.4375
             ).round(0)
 
-            df3['net revenue / month'] = (df3['net revenue'] / df3['months at WY']).round(0)
+            df3['net revenue/month'] = (df3['net revenue'] / df3['months at WY']).round(0)
 
             self.net_revenue_analysis = df3
             return self.net_revenue_analysis
@@ -123,7 +119,7 @@ class NetRevenueByCow:
         output_dir = Path("/home/alanw/Documents/vsCode_output/finance/net_revenue/net_revenue_by_cow")
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        self.net_revenue_by_cow_weekly      .to_csv(output_dir / "net_revenue_by_cow_weekly.csv", index=False)
+        self.net_revenue_by_cow_weekly      .to_csv(output_dir / "net_revenue_by_cow_weekly.csv", index=True)
         self.net_revenue_by_cow_total       .to_csv(output_dir / "net_revenue_by_cow_total.csv", index=False)
         self.avg_net_revenue_by_cow_weekly  .to_csv(output_dir / "avg_net_revenue_by_cow_weekly.csv", index=True )
         self.cumulative_avg_net_revenue_by_cow_weekly.to_csv(output_dir / "cumulative_avg_net_revenue_by_cow_weekly.csv", index=True)

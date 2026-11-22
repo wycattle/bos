@@ -15,36 +15,6 @@ class WetDry:
         
     def __init__(self):
         print(f"WetDry instantiated by: {inspect.stack()[1].filename}")
-
-        # load
-        self.MB = None
-        
-        #process
-        self.data = None
-        self.death_date = None
-        self.ext_rng = None
-        self.datex = None        
-        self.startdate = None
-        
-        self.milk1 = None
-        self.bd = None
-        self.start_pivot = None
-        self.stop_pivot = None
-        self.wy_id_list = None
-        self.lacts = None
-        
-        #methods
-        self.period_daily = None
-        self.max_days_per_period = None
-        self.wd_letters_daily = None 
-        self.wd_lact_num_daily = None
-        self.period_weekly      = None
-        self.wet_period_weekly  = None
-        self.wet_dry_days_weekly = None
-        self.wet_dry_days_daily = None
-        self.wd_letters_weekly = None 
-        self.wd_lact_num_weekly = None
-
         
     def load(self):
         self.MB = get_dependency('milk_basics')
@@ -61,7 +31,7 @@ class WetDry:
         self.ext_rng    = self.MB.data['ext_rng']
         self.datex      = self.MB.data['datex']
         # self.startdate  = self.DR.startdate
-        self.startdate  = pd.to_datetime("2016-09-01")
+        self.startdate  = pd.to_datetime("2023-01-01")
       
         fullday         = self.MAB.fullday.copy()
         fullday.columns = fullday.columns.astype(str)

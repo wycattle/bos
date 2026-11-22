@@ -119,8 +119,12 @@ class ModelGroups:
         liters = self.liters
         ix = dict(index=liters.index, columns=liters.columns)   # 'index' is the weekly date index
         wk     = self.weeknums.reindex(**ix).to_numpy(dtype=float)
+        #dictionary unpacking (or keyword argument unpacking)
+        #When you have a dictionary whose keys match the parameter names of a function, you can pass them all at once using **
+        # reindex(**ix) is same as: df_result = df.reindex(index=liters.index, columns=liters.columns)
+
         L      = liters.to_numpy(dtype=float)
-        period = self.period.reindex(**ix).astype('string')
+        period = self.period.reindex(**ix).astype('string') #
         letter = period.apply(lambda c: c.str.extract(r'([A-Za-z]+)')[0])
 
         def arr(c): return c.to_numpy(dtype=bool, na_value=False)
@@ -165,7 +169,12 @@ class ModelGroups:
     def write_to_csv(self):
         output_dir = Path("/home/alanw/Documents/vsCode_output/model_groups")
         output_dir.mkdir(parents=True, exist_ok=True)
-        self.model_groups_daily  .to_csv( output_dir / "model_groups_daily.csv")
+
+        truncate_date = pd.Timestamp('2023-01-01')
+
+        mgd = self.model_groups_daily.loc[truncate_date :,:]
+
+        mgd                      .to_csv( output_dir / "model_groups_daily.csv")
         self.model_groups_monthly.to_csv( output_dir / "model_groups_monthly.csv")
         self.model_groups_weekly .to_csv( output_dir / "model_groups_weekly.csv")        
         

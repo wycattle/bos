@@ -27,7 +27,7 @@ class LactationPlots:
         self.process()
 
     def process(self):
-        self.alive_ids = self.SD.alive_ids_today
+        self.alive_ids = self.SD.alive_ids_today_list
         self.weekly_lactations = [
             (1, self.L.live_L1_weekly_avg),
             (2, self.L.live_L2_weekly_avg),

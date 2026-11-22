@@ -8,14 +8,6 @@ class FeedCostDataLoader:
     """Handles raw extraction from Neon Postgres – no processing."""
     def __init__(self):
         self.engine = get_engine()
-        # self.load_feed_type_feed_daily_amt_ledger()
-        # self.load_feed_type_feed_invoice_ledger()
-        # self.load_feed_invoice_ledger()
-        # self.load_feed_daily_amt_ledger()
-        # self.get_iu_merge()
-        
-        
-        
         
     def load_basic_feed_types(self):
         with self.engine.connect() as conn:
@@ -102,3 +94,5 @@ class FeedCostDataProcessor:
 if __name__ == "__main__":
     loader = FeedCostDataLoader()
     processor = FeedCostDataProcessor(loader)
+    L = FeedCostDataLoader().load_feed_invoice_ledger()
+    print(L[L.feed_type.str.startswith('corn')][['payment_date','price_per_kg']])
