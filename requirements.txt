@@ -95,7 +95,7 @@ uritemplate==4.2.0
 urllib3==2.7.0
 watchfiles==1.2.0
 wcwidth==0.8.3
-Werkzeug==3.1.8
+Werkzeug==3.1.9
 xlsxwriter==3.2.9
 yarl==1.24.5
 zipp==4.1.0
