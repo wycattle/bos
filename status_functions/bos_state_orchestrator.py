@@ -20,7 +20,7 @@ class BosStateOrchestrator:
         self.IUD    = None
 
     def load(self):
-        self.SD  = get_dependency('status_data')
+        self.SD  = get_dependency('StatusData')
         self.MB  = get_dependency('milk_basics')
         self.IP = get_dependency('is_pregnant')
         self.process()

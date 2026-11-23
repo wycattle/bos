@@ -47,7 +47,7 @@ class IsPregnant:
 
     def load(self):
 
-        self.SD = get_dependency('status_data')
+        self.SD = get_dependency('StatusData')
         self.WD = get_dependency('wet_dry')
         self.IUD= get_dependency('insem_ultra_data')
         self.MB = get_dependency('milk_basics')

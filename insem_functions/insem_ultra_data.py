@@ -15,7 +15,7 @@ class InsemUltraData:
         # client = ContainerClient()
         self.DR     = get_dependency('date_range')
         self.MB     = get_dependency('milk_basics')
-        self.SD     = get_dependency('status_data')
+        self.SD     = get_dependency('StatusData')
         self.IUB    = get_dependency('insem_ultra_basics')
         self.process()
         
@@ -196,6 +196,7 @@ class InsemUltraData:
         df4['u_check2']  = (df4['u_date'] - df4['i_date']).dt.days
         
         df5 = df4.rename(columns={'last_calf_age': 'days_milking'}).reset_index(drop=True)
+        
         # Convert status_col (DataFrame with dynamic column name) to wy_id, status format
         status_df = self.status_col.reset_index()
         status_df.columns=['wy_id','status']

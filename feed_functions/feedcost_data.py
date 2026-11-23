@@ -21,7 +21,7 @@ class FeedCostData:
     def load(self):
         self.FB = get_dependency('feedcost_basics')
         self.MG = get_dependency('model_groups')
-        self.SD = get_dependency('status_data')
+        self.SD = get_dependency('StatusData')
         self.WD = get_dependency('wet_dry')
         self.DR = get_dependency('date_range')
         self.process()
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     obj.load()
     obj.write_to_csv()
     from container import get_dependency
-    SD = get_dependency("status_data")
+    SD = get_dependency("StatusData")
     print(obj.SD.status_col_all.loc['2023-06-19':'2023-06-27', 15])
     print(obj.group_assigned_daily.loc['2023-06-19':'2023-06-27', 15])
     fb = obj.FB

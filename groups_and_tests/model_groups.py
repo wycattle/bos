@@ -55,7 +55,7 @@ class ModelGroups:
 
     def load(self):
 
-        self.SD = get_dependency('status_data')
+        self.SD = get_dependency('StatusData')
         self.WD = get_dependency('wet_dry')
         self.wet_dry_days_weekly = self.WD.wet_dry_days_weekly
         self.period_weekly = self.WD.period_weekly

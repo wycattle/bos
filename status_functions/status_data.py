@@ -1,4 +1,4 @@
-'''status_functions.status_data'''
+'''status_functions.StatusData'''
 import inspect
 from pathlib import Path
 import pandas as pd
@@ -7,9 +7,9 @@ from datetime import datetime
 from container import get_dependency
 
 
-class status_data:
+class StatusData:
     def __init__(self):
-        print(f"status_data instantiated by: {inspect.stack()[1].filename}")
+        print(f"StatusData instantiated by: {inspect.stack()[1].filename}")
 
     def load(self):
         self.MB = get_dependency('milk_basics')
@@ -126,20 +126,20 @@ class status_data:
     
     
 if __name__ == "__main__":
-    obj = status_data()
+    obj = StatusData()
     obj.load()
     obj.write_to_csv()
-    cow = 15  # change to str if wy_ids are strings
-    sca = obj.status_col_all
-    print(sca.loc['2024-02-01':'2024-02-06', cow])
+    # cow = 15  # change to str if wy_ids are strings
+    # sca = obj.status_col_all
+    # print(sca.loc['2024-02-01':'2024-02-06', cow])
 
-    # raw inputs to compare against
-    print("b_date:", obj.bd.loc[cow, 'b_date'], "| death:", obj.bd.loc[cow, 'death_date'])
-    print("first calf:", obj.lb_pivot[1].get(cow))
-    print(obj.MAB.fullday.loc['2024-02-01':'2024-02-06', cow])
-    # position check
-    print("pos in wy_ids:", list(obj.wy_ids).index(cow),
-        "| pos in bd:", list(obj.bd.index).index(cow),
-        "| pos in lb_pivot:", list(obj.lb_pivot.index).index(cow))
+    # # raw inputs to compare against
+    # print("b_date:", obj.bd.loc[cow, 'b_date'], "| death:", obj.bd.loc[cow, 'death_date'])
+    # print("first calf:", obj.lb_pivot[1].get(cow))
+    # print(obj.MAB.fullday.loc['2024-02-01':'2024-02-06', cow])
+    # # position check
+    # print("pos in wy_ids:", list(obj.wy_ids).index(cow),
+    #     "| pos in bd:", list(obj.bd.index).index(cow),
+    #     "| pos in lb_pivot:", list(obj.lb_pivot.index).index(cow))
 
             

@@ -34,14 +34,13 @@ class MilkAggregates:
         self.allx = self.IUD.allx
         
         # Pull computed results from MAB
-        self.am               = self.MAB.am
-        self.pm               = self.MAB.pm
-        self.fullday          = self.MAB.fullday
+        self.am               = self.MAB.am.copy()
+        self.pm               = self.MAB.pm.copy()
+        self.fullday          = self.MAB.fullday.copy()
         self.fullday.sort_index(inplace=True)
-        self.fullday_lastdate = self.MAB.fullday_lastdate
-        self.datex            = self.MAB.datex
-        self.AM_liters        = self.MAB.AM_liters
-        self.PM_liters        = self.MAB.PM_liters
+        self.datex            = self.MAB.datex.copy()
+        self.AM_liters        = self.MAB.AM_liters.copy()
+        self.PM_liters        = self.MAB.PM_liters.copy()
 
 
         # methods

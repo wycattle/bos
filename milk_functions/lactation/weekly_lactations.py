@@ -14,7 +14,7 @@ class WeeklyLactations():
         self.MB     = get_dependency('milk_basics')
         self.DR     = get_dependency('date_range')
         self.L      = get_dependency('lactations')
-        self.SD     = get_dependency('status_data')
+        self.SD     = get_dependency('StatusData')
         self.process()
         
     def process(self):

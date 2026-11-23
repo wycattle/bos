@@ -27,7 +27,7 @@ class CheckLastStop:
         self.MB = get_dependency('milk_basics')
         self.DR = get_dependency('date_range')
         self.data = self.MB.data
-        self.SD = get_dependency('status_data')
+        self.SD = get_dependency('StatusData')
         self.IUB = get_dependency('insem_ultra_basics')
         self.IUD = get_dependency('insem_ultra_data')
         self.process()

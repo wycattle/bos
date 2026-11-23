@@ -58,7 +58,7 @@ class Container:
         self.register_singleton('date_range', self._create_date_range)
         
         # Status
-        self.register_singleton('status_data',          self._create_status_data)
+        self.register_singleton('StatusData',          self._create_StatusData)
         self.register_singleton('wet_dry',              self._create_wet_dry)
         self.register_singleton('whiteboard_groups',    self._create_whiteboard_groups)
         self.register_singleton('model_groups_tenday',  self._create_model_groups)
@@ -243,9 +243,9 @@ class Container:
     
 
     # Status functions
-    def _create_status_data(self):
-        from status_functions.status_data import status_data
-        return status_data()
+    def _create_StatusData(self):
+        from status_functions.status_data import StatusData
+        return StatusData()
     
     def _create_wet_dry(self):
         from status_functions.wet_dry import WetDry

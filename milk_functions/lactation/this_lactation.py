@@ -10,7 +10,7 @@ class ThisLactation():
     def load(self):
         self.MB  = get_dependency('milk_basics')
         self.WD  = get_dependency('wet_dry')
-        self.SD  = get_dependency('status_data')
+        self.SD  = get_dependency('StatusData')
         self.IUB = get_dependency('insem_ultra_basics')
         self.process()
         

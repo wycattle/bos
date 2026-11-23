@@ -22,7 +22,7 @@ class LactationPlots:
     def load(self):
         self.L = get_dependency('lactations')
         self.LB = get_dependency('lactation_basics')
-        self.SD = get_dependency('status_data')
+        self.SD = get_dependency('StatusData')
         self.process()
 
     def process(self):

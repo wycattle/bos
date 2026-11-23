@@ -14,7 +14,7 @@ class Lactations:
     def load(self):
 
         self.LB     = get_dependency('lactation_basics')
-        self.SD     = get_dependency('status_data')
+        self.SD     = get_dependency('StatusData')
         self.IUB    = get_dependency('insem_ultra_basics')
         self.MB     = get_dependency('milk_basics')
 

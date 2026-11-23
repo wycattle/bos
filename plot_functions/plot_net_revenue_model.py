@@ -14,7 +14,7 @@ class PlotNetRevenueModel:
         pass
     def load(self):
         self.NRBC = get_dependency('net_revenue_by_cow')
-        self.SD = get_dependency('status_data')
+        self.SD = get_dependency('StatusData')
         self.DOC= get_dependency('date_of_change') 
         self.MI = get_dependency('milk_income') 
         self.FCW = get_dependency('feedcost_data')

@@ -2,7 +2,7 @@
 
 Loads milk data from Neon (milk_transpose table), computes AM/PM/fullday matrices,
 and injects MB.data['milk'] with the freshly computed fullday.
-No insem dependency — safe to load before status_data.
+No insem dependency — safe to load before StatusData.
 '''
 
 
@@ -129,7 +129,6 @@ class MilkAggregatesBasic:
         self.pm.columns = self.datex
         self.pm.replace(0, np.nan, inplace=True)
         self.pm.drop(self.pm.columns[0], axis=1, inplace=True)
-        print('last pm ', self.pm.iloc[-1,93:95])
 
 
 
