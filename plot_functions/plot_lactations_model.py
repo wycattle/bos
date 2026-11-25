@@ -1,5 +1,6 @@
 '''plot_functions/lactation_plots.py'''
 import io
+import inspect
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
@@ -13,11 +14,8 @@ S3_LACTATION_PREFIX = "plots/lactations"  # changed from "plots/Lactation_Curves
 
 class LactationPlots:
     def __init__(self):
-        self.L = None
-        self.LB = None
-        self.SD = None
-        self.alive_ids = None
-        self.weekly_lactations = None
+        print(f"LactationPlots instantiated by: {inspect.stack()[1].filename}")
+
 
     def load(self):
         self.L = get_dependency('lactations')
@@ -26,7 +24,7 @@ class LactationPlots:
         self.process()
 
     def process(self):
-        self.alive_ids = self.SD.alive_ids_today
+        self.alive_ids = self.SD.alive_ids_today_list
         self.weekly_lactations = [
             (1, self.L.live_L1_weekly_avg),
             (2, self.L.live_L2_weekly_avg),

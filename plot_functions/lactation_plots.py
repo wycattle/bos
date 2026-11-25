@@ -1,5 +1,6 @@
 '''LactationPlots.py'''
 import io
+import inspect
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
@@ -8,17 +9,14 @@ import matplotlib.pyplot as plt
 from container import get_dependency
 from pipeline.aws.s3_loader import s3_upload_png
 
-S3_LACTATION_PREFIX = "plots/Lactation_Curves"
+S3_LACTATION_PREFIX = "plots/lactation_curves"
 
 #NOTE: THIS RUNS THE RCLONE
 
 class LactationPlots:
     def __init__(self):
-        self.L = None
-        self.LB = None
-        self.SD = None
-        self.alive_ids = None
-        self.weekly_lactations = None
+        print(f"LactationPlots instantiated by: {inspect.stack()[1].filename}")
+
 
     def load(self):
         self.L = get_dependency('lactations')
